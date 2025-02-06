@@ -42,8 +42,9 @@ window.onload = function() {
         };
     });
 
-    // Initially hide the middle point
+    // Initially hide points 5 and 9
     document.getElementById('Pt5').style.display = 'none';
+    document.getElementById('Pt9').style.display = 'none';
 
     // Set up recording controls
     document.getElementById('start-recording').onclick = startRecording;
@@ -53,7 +54,8 @@ window.onload = function() {
 // Find next uncalibrated point
 function findNextPoint() {
     for (let i = 1; i <= 9; i++) {
-        if (i === 5 && PointCalibrate < 8) continue; // Skip middle point until others are done
+        // Skip middle point and point 9 until others are done
+        if ((i === 5 || i === 9) && PointCalibrate < 7) continue;
         const point = document.getElementById('Pt' + i);
         if (!point.disabled) {
             return point;
@@ -98,10 +100,12 @@ function calPointClick(node) {
         }
     }
 
-    // Show middle point after 8 points are done
-    if (PointCalibrate == 8) {
+    // Show points 5 and 9 after 7 points are done
+    if (PointCalibrate == 7) {
         const middlePoint = document.getElementById('Pt5');
+        const lastPoint = document.getElementById('Pt9');
         middlePoint.style.display = 'block';
+        lastPoint.style.display = 'block';
         middlePoint.classList.add('next-point');
         document.querySelector('.next-point-text').textContent = 
             'Now click the center point';
@@ -239,11 +243,12 @@ function Restart() {
         point.style.opacity = '0.2';
         point.disabled = false;
         point.classList.remove('next-point');
-        if (point.id !== 'Pt5') {
+        if (point.id !== 'Pt5' && point.id !== 'Pt9') {
             point.style.display = 'block';
         }
     });
     document.getElementById('Pt5').style.display = 'none';
+    document.getElementById('Pt9').style.display = 'none';
     
     CalibrationPoints = {};
     PointCalibrate = 0;

@@ -15,6 +15,7 @@ window.onload = async function() {
     window.recordingData = [];
     window.recordingInterval = null;
     window.sessionId = null;
+    window.webgazerReady = false;
     PointCalibrate = 0;
     CalibrationPoints = {};
 
@@ -27,22 +28,33 @@ window.onload = async function() {
     document.getElementById('start-recording').style.display = 'none';
     document.getElementById('stop-recording').style.display = 'none';
 
-    // Initialize webgazer with gaze listener
-    await webgazer.setRegression('ridge')
-        .setTracker('TFFacemesh')
-        .setGazeListener(function(data, elapsedTime) {
-            if (data == null) return;
+    try {
+        // Initialize webgazer with gaze listener
+        await webgazer.setRegression('ridge')
+            .setTracker('TFFacemesh')
+            .setGazeListener(function(data, elapsedTime) {
+                if (data == null) return;
+                
+                document.getElementById('gaze-x').textContent = Math.round(data.x);
+                document.getElementById('gaze-y').textContent = Math.round(data.y);
+                
+                if (window.isRecording) {
+                    console.log('Recording point:', data.x, data.y); // Debug log
+                    recordGazeData(data.x, data.y);
+                }
+            })
+            .begin();
             
-            document.getElementById('gaze-x').textContent = Math.round(data.x);
-            document.getElementById('gaze-y').textContent = Math.round(data.y);
-            
-            if (window.isRecording) {
-                console.log('Recording point:', data.x, data.y); // Debug log
-                recordGazeData(data.x, data.y);
-            }
-        })
-        .begin();
-        
+        // Wait for WebGazer to fully initialize
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        window.webgazerReady = true;
+        console.log('WebGazer initialization complete'); // Debug log
+    } catch (error) {
+        console.error('Error initializing WebGazer:', error);
+        document.getElementById('status').innerHTML = 
+            '<p>Error initializing eye tracking. Please refresh the page and try again.</p>';
+    }
+
     webgazer.showVideoPreview(true)
         .showPredictionPoints(true)
         .applyKalmanFilter(true);
@@ -86,6 +98,11 @@ function findNextPoint() {
 
 // Handle calibration point click
 function calPointClick(node) {
+    if (!window.webgazerReady) {
+        console.log('WebGazer not ready, ignoring click'); // Debug log
+        return;
+    }
+
     const id = node.id;
     console.log('Clicked point:', id, 'Current PointCalibrate:', PointCalibrate); // Debug log
     
@@ -132,16 +149,24 @@ function calPointClick(node) {
         document.getElementById('status').innerHTML = 
             '<p>Calibration complete! Calculating accuracy...</p>';
         
-        // Calculate accuracy after a short delay to allow UI to update
+        // Wait for WebGazer to process the calibration
         setTimeout(async () => {
             try {
+                // Force WebGazer to update its internal state
+                await webgazer.store();
+                console.log('WebGazer calibration stored'); // Debug log
+                
+                // Wait a moment for WebGazer to stabilize
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Now calculate accuracy
                 await calculateAccuracy();
             } catch (error) {
                 console.error('Error during accuracy calculation:', error);
                 document.getElementById('status').innerHTML = 
-                    '<p>Error during accuracy calculation. Please try again.</p>';
+                    '<p>Error during accuracy calculation: ' + error.message + '. Please try again.</p>';
             }
-        }, 500);
+        }, 1000);
     }
 }
 
@@ -194,74 +219,102 @@ function removeAccuracyCircle() {
 
 // Calculate accuracy after calibration
 async function calculateAccuracy() {
-    console.log('Starting accuracy calculation...'); // Debug log
-    
-    var accuracyPromise = await webgazer.checkEyesInVideo(); // Check if eyes are detected
-    console.log('Eye detection check result:', accuracyPromise); // Debug log
-    
-    if (!accuracyPromise) {
-        console.error('Eye detection failed'); // Debug log
-        alert("Unable to detect the user's eyes! Please try again with better lighting or camera positioning.");
-        return;
-    }
-
-    console.log('Showing accuracy circle...'); // Debug log
-    await showAccuracyCircle();
-    console.log('Accuracy circle shown, collecting gaze data...'); // Debug log
-    
-    var accuracyValue = await new Promise(resolve => {
-        var totalTime = 0;
-        var totalPoints = 0;
-        var accuracySum = 0;
+    try {
+        console.log('Starting accuracy calculation...'); // Debug log
         
-        var checkInterval = setInterval(async function() {
-            totalTime += 50;
-            var prediction = await webgazer.getCurrentPrediction();
+        // Wait a moment for WebGazer to stabilize
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        console.log('Checking eye detection...'); // Debug log
+        var eyeFeatures = await webgazer.getTracker().getEyePatches();
+        console.log('Eye features:', eyeFeatures); // Debug log
+        
+        if (!eyeFeatures || !eyeFeatures.length) {
+            console.error('No eye features detected'); // Debug log
+            throw new Error('Unable to detect eyes');
+        }
+
+        console.log('Showing accuracy circle...'); // Debug log
+        await showAccuracyCircle();
+        console.log('Accuracy circle shown, collecting gaze data...'); // Debug log
+        
+        var accuracyValue = await new Promise((resolve, reject) => {
+            var totalTime = 0;
+            var totalPoints = 0;
+            var accuracySum = 0;
             
-            if (prediction) {
-                var accuracyCircle = document.getElementById('accuracy-circle');
-                if (!accuracyCircle) {
-                    console.error('Accuracy circle not found in DOM!'); // Debug log
+            var checkInterval = setInterval(async function() {
+                try {
+                    totalTime += 50;
+                    console.log('Getting prediction, time:', totalTime); // Debug log
+                    
+                    var prediction = await webgazer.getCurrentPrediction();
+                    console.log('Raw prediction:', prediction); // Debug log
+                    
+                    if (prediction) {
+                        var accuracyCircle = document.getElementById('accuracy-circle');
+                        if (!accuracyCircle) {
+                            console.error('Accuracy circle not found in DOM!'); // Debug log
+                            clearInterval(checkInterval);
+                            reject(new Error('Accuracy circle not found'));
+                            return;
+                        }
+                        
+                        var rect = accuracyCircle.getBoundingClientRect();
+                        var centerX = rect.left + rect.width / 2;
+                        var centerY = rect.top + rect.height / 2;
+                        
+                        var distance = Math.sqrt(
+                            Math.pow(prediction.x - centerX, 2) + 
+                            Math.pow(prediction.y - centerY, 2)
+                        );
+                        
+                        accuracySum += (1 - Math.min(distance / 200, 1));
+                        totalPoints++;
+                        console.log('Got prediction:', prediction.x, prediction.y, 'distance:', distance, 'total points:', totalPoints); // Debug log
+                    } else {
+                        console.log('No prediction available'); // Debug log
+                    }
+                    
+                    if (totalTime >= 2000) {  // Check for 2 seconds
+                        clearInterval(checkInterval);
+                        if (totalPoints === 0) {
+                            reject(new Error('No gaze predictions collected'));
+                        } else {
+                            resolve(accuracySum / totalPoints * 100);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error in prediction loop:', error); // Debug log
                     clearInterval(checkInterval);
-                    resolve(0);
-                    return;
+                    reject(error);
                 }
-                
-                var rect = accuracyCircle.getBoundingClientRect();
-                var centerX = rect.left + rect.width / 2;
-                var centerY = rect.top + rect.height / 2;
-                
-                var distance = Math.sqrt(
-                    Math.pow(prediction.x - centerX, 2) + 
-                    Math.pow(prediction.y - centerY, 2)
-                );
-                
-                accuracySum += (1 - Math.min(distance / 200, 1));
-                totalPoints++;
-                console.log('Got prediction:', prediction.x, prediction.y, 'distance:', distance); // Debug log
-            }
-            
-            if (totalTime >= 2000) {  // Check for 2 seconds
-                clearInterval(checkInterval);
-                resolve(totalPoints > 0 ? (accuracySum / totalPoints * 100) : 0);
-            }
-        }, 50);
-    });
-    
-    console.log('Accuracy calculation complete:', accuracyValue); // Debug log
-    removeAccuracyCircle();
-    
-    // Update accuracy display
-    var accuracyElement = document.getElementById('accuracy-value');
-    accuracyElement.textContent = accuracyValue.toFixed(1) + '%';
-    
-    // Update status
-    document.getElementById('status').innerHTML = 
-        '<p>Calibration complete! Accuracy: ' + accuracyValue.toFixed(1) + '%</p>';
-    
-    // Show recording controls after calibration
-    document.getElementById('recording-controls').style.removeProperty('display');
-    document.getElementById('start-recording').style.removeProperty('display');
+            }, 50);
+        });
+        
+        console.log('Accuracy calculation complete:', accuracyValue); // Debug log
+        removeAccuracyCircle();
+        
+        // Update accuracy display
+        var accuracyElement = document.getElementById('accuracy-value');
+        accuracyElement.textContent = accuracyValue.toFixed(1) + '%';
+        
+        // Update status
+        document.getElementById('status').innerHTML = 
+            '<p>Calibration complete! Accuracy: ' + accuracyValue.toFixed(1) + '%</p>';
+        
+        // Show recording controls after calibration
+        document.getElementById('recording-controls').style.removeProperty('display');
+        document.getElementById('start-recording').style.removeProperty('display');
+        
+    } catch (error) {
+        console.error('Error in calculateAccuracy:', error); // Debug log
+        document.getElementById('status').innerHTML = 
+            '<p>Error during accuracy calculation: ' + error.message + '. Please try again.</p>';
+        document.getElementById('accuracy-value').textContent = 'Not Calibrated';
+        removeAccuracyCircle();
+        throw error;
+    }
 }
 
 // Format date to YYYY-MM-DD HH:mm:ss.SSS

@@ -15,6 +15,8 @@ window.onload = async function() {
     window.recordingData = [];
     window.recordingInterval = null;
     window.sessionId = null;
+    PointCalibrate = 0;
+    CalibrationPoints = {};
 
     // Add click handlers for recording buttons
     document.getElementById('start-recording').onclick = startRecording;
@@ -85,12 +87,13 @@ function findNextPoint() {
 // Handle calibration point click
 function calPointClick(node) {
     const id = node.id;
-    console.log('Clicked point:', id);
+    console.log('Clicked point:', id, 'Current PointCalibrate:', PointCalibrate); // Debug log
     
     if (!CalibrationPoints[id]) {
         CalibrationPoints[id] = 0;
     }
     CalibrationPoints[id]++;
+    console.log('Clicks for point', id + ':', CalibrationPoints[id]); // Debug log
 
     // Update opacity based on clicks
     var opacity = 0.7 * CalibrationPoints[id] / 5;
@@ -107,6 +110,7 @@ function calPointClick(node) {
         node.style.backgroundColor = 'yellow';
         node.disabled = true;
         PointCalibrate++;
+        console.log('Point complete. Total points calibrated:', PointCalibrate); // Debug log
         
         // Find and highlight next point
         const nextPoint = findNextPoint();
@@ -123,13 +127,20 @@ function calPointClick(node) {
 
     // If calibration is complete
     if (PointCalibrate >= 9) {
+        console.log('All points calibrated. Starting accuracy calculation...'); // Debug log
         // Update status
         document.getElementById('status').innerHTML = 
             '<p>Calibration complete! Calculating accuracy...</p>';
         
         // Calculate accuracy after a short delay to allow UI to update
-        setTimeout(() => {
-            calculateAccuracy();
+        setTimeout(async () => {
+            try {
+                await calculateAccuracy();
+            } catch (error) {
+                console.error('Error during accuracy calculation:', error);
+                document.getElementById('status').innerHTML = 
+                    '<p>Error during accuracy calculation. Please try again.</p>';
+            }
         }, 500);
     }
 }
@@ -148,7 +159,8 @@ function updateProgress() {
 }
 
 // Function to show accuracy calculation circle
-function showAccuracyCircle() {
+async function showAccuracyCircle() {
+    console.log('Creating accuracy circle...'); // Debug log
     return new Promise((resolve) => {
         const circle = document.createElement('div');
         circle.id = 'accuracy-circle';
@@ -160,11 +172,15 @@ function showAccuracyCircle() {
         circle.style.left = '50%';
         circle.style.top = '50%';
         circle.style.transform = 'translate(-50%, -50%)';
-        circle.style.zIndex = '1000';
+        circle.style.zIndex = '9999';
         document.body.appendChild(circle);
+        console.log('Accuracy circle created and appended to body'); // Debug log
         
         // Give the circle time to render
-        setTimeout(resolve, 100);
+        setTimeout(() => {
+            console.log('Accuracy circle render timeout complete'); // Debug log
+            resolve();
+        }, 100);
     });
 }
 
@@ -181,12 +197,15 @@ async function calculateAccuracy() {
     console.log('Starting accuracy calculation...'); // Debug log
     
     var accuracyPromise = await webgazer.checkEyesInVideo(); // Check if eyes are detected
+    console.log('Eye detection check result:', accuracyPromise); // Debug log
     
     if (!accuracyPromise) {
+        console.error('Eye detection failed'); // Debug log
         alert("Unable to detect the user's eyes! Please try again with better lighting or camera positioning.");
         return;
     }
 
+    console.log('Showing accuracy circle...'); // Debug log
     await showAccuracyCircle();
     console.log('Accuracy circle shown, collecting gaze data...'); // Debug log
     
@@ -201,6 +220,13 @@ async function calculateAccuracy() {
             
             if (prediction) {
                 var accuracyCircle = document.getElementById('accuracy-circle');
+                if (!accuracyCircle) {
+                    console.error('Accuracy circle not found in DOM!'); // Debug log
+                    clearInterval(checkInterval);
+                    resolve(0);
+                    return;
+                }
+                
                 var rect = accuracyCircle.getBoundingClientRect();
                 var centerX = rect.left + rect.width / 2;
                 var centerY = rect.top + rect.height / 2;

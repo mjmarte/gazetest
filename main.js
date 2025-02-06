@@ -12,21 +12,9 @@ window.onload = async function() {
     document.getElementById('start-recording').style.display = 'none';
     document.getElementById('stop-recording').style.display = 'none';
 
+    // Initialize webgazer without a gaze listener (we'll add it when needed)
     webgazer.setRegression('ridge')
         .setTracker('TFFacemesh')
-        .setGazeListener(function(data, elapsedTime) {
-            if (data == null) return;
-            
-            var xprediction = data.x;
-            var yprediction = data.y;
-            
-            document.getElementById('gaze-x').textContent = Math.round(xprediction);
-            document.getElementById('gaze-y').textContent = Math.round(yprediction);
-            
-            if (isRecording) {
-                recordGazeData(xprediction, yprediction);
-            }
-        })
         .begin();
         
     webgazer.showVideoPreview(true)
@@ -54,6 +42,9 @@ window.onload = async function() {
     // Start with first point highlighted
     document.getElementById('Pt1').classList.add('next-point');
     document.querySelector('.next-point-text').textContent = 'Start with point 1';
+
+    // Set up window close handler
+    window.onbeforeunload = onbeforeunload;
 };
 
 // Find next uncalibrated point
@@ -229,6 +220,21 @@ function startRecording() {
     sessionId = formatDate(recordingStartTime);
     recordingData = [];
     
+    // Restore gaze listener for recording
+    webgazer.setGazeListener(function(data, elapsedTime) {
+        if (data == null) return;
+        
+        var xprediction = data.x;
+        var yprediction = data.y;
+        
+        document.getElementById('gaze-x').textContent = Math.round(xprediction);
+        document.getElementById('gaze-y').textContent = Math.round(yprediction);
+        
+        if (isRecording) {
+            recordGazeData(xprediction, yprediction);
+        }
+    });
+    
     // Update UI
     document.getElementById('start-recording').style.display = 'none';
     document.getElementById('stop-recording').style.removeProperty('display');
@@ -316,7 +322,7 @@ function Restart() {
 }
 
 // Cleanup on window close
-window.onbeforeunload = function() {
+function onbeforeunload() {
     if (isRecording) {
         stopRecording();
     }

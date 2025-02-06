@@ -220,20 +220,31 @@ function startRecording() {
     sessionId = formatDate(recordingStartTime);
     recordingData = [];
     
-    // Restore gaze listener for recording
-    webgazer.setGazeListener(function(data, elapsedTime) {
-        if (data == null) return;
+    // Set up high frequency gaze collection using requestAnimationFrame
+    let lastFrameTime = performance.now();
+    const targetInterval = 1000 / 60; // Target 60Hz
+    
+    function collectGaze(currentTime) {
+        if (!isRecording) return;
         
-        var xprediction = data.x;
-        var yprediction = data.y;
-        
-        document.getElementById('gaze-x').textContent = Math.round(xprediction);
-        document.getElementById('gaze-y').textContent = Math.round(yprediction);
-        
-        if (isRecording) {
-            recordGazeData(xprediction, yprediction);
+        // Only collect if enough time has passed (targeting 60Hz)
+        if (currentTime - lastFrameTime >= targetInterval) {
+            const prediction = webgazer.getCurrentPrediction();
+            if (prediction) {
+                document.getElementById('gaze-x').textContent = Math.round(prediction.x);
+                document.getElementById('gaze-y').textContent = Math.round(prediction.y);
+                
+                recordGazeData(prediction.x, prediction.y);
+            }
+            lastFrameTime = currentTime;
         }
-    });
+        
+        // Request next frame
+        requestAnimationFrame(collectGaze);
+    }
+    
+    // Start the collection loop
+    requestAnimationFrame(collectGaze);
     
     // Update UI
     document.getElementById('start-recording').style.display = 'none';

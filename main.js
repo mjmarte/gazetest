@@ -222,74 +222,49 @@ async function calculateAccuracy() {
     try {
         console.log('Starting accuracy calculation...'); // Debug log
         
-        // Wait a moment for WebGazer to stabilize
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        console.log('Checking eye detection...'); // Debug log
-        var eyeFeatures = await webgazer.getTracker().getEyePatches();
-        console.log('Eye features:', eyeFeatures); // Debug log
-        
-        if (!eyeFeatures || !eyeFeatures.length) {
-            console.error('No eye features detected'); // Debug log
-            throw new Error('Unable to detect eyes');
-        }
-
+        // Show accuracy circle
         console.log('Showing accuracy circle...'); // Debug log
         await showAccuracyCircle();
         console.log('Accuracy circle shown, collecting gaze data...'); // Debug log
         
+        // Start recording gaze data
+        webgazer.startRecording();
+        
         var accuracyValue = await new Promise((resolve, reject) => {
-            var totalTime = 0;
-            var totalPoints = 0;
-            var accuracySum = 0;
-            
-            var checkInterval = setInterval(async function() {
+            setTimeout(async () => {
                 try {
-                    totalTime += 50;
-                    console.log('Getting prediction, time:', totalTime); // Debug log
+                    // Stop recording and get the points
+                    webgazer.stopRecording();
+                    var predictions = webgazer.getRecordedPoints();
                     
-                    var prediction = await webgazer.getCurrentPrediction();
-                    console.log('Raw prediction:', prediction); // Debug log
+                    if (!predictions || predictions.length === 0) {
+                        throw new Error('No gaze predictions collected');
+                    }
                     
-                    if (prediction) {
-                        var accuracyCircle = document.getElementById('accuracy-circle');
-                        if (!accuracyCircle) {
-                            console.error('Accuracy circle not found in DOM!'); // Debug log
-                            clearInterval(checkInterval);
-                            reject(new Error('Accuracy circle not found'));
-                            return;
-                        }
-                        
-                        var rect = accuracyCircle.getBoundingClientRect();
-                        var centerX = rect.left + rect.width / 2;
-                        var centerY = rect.top + rect.height / 2;
-                        
+                    // Calculate accuracy based on distance from center
+                    var accuracyCircle = document.getElementById('accuracy-circle');
+                    if (!accuracyCircle) {
+                        throw new Error('Accuracy circle not found');
+                    }
+                    
+                    var rect = accuracyCircle.getBoundingClientRect();
+                    var centerX = rect.left + rect.width / 2;
+                    var centerY = rect.top + rect.height / 2;
+                    
+                    var totalAccuracy = 0;
+                    predictions.forEach(pred => {
                         var distance = Math.sqrt(
-                            Math.pow(prediction.x - centerX, 2) + 
-                            Math.pow(prediction.y - centerY, 2)
+                            Math.pow(pred.x - centerX, 2) + 
+                            Math.pow(pred.y - centerY, 2)
                         );
-                        
-                        accuracySum += (1 - Math.min(distance / 200, 1));
-                        totalPoints++;
-                        console.log('Got prediction:', prediction.x, prediction.y, 'distance:', distance, 'total points:', totalPoints); // Debug log
-                    } else {
-                        console.log('No prediction available'); // Debug log
-                    }
+                        totalAccuracy += (1 - Math.min(distance / 200, 1));
+                    });
                     
-                    if (totalTime >= 2000) {  // Check for 2 seconds
-                        clearInterval(checkInterval);
-                        if (totalPoints === 0) {
-                            reject(new Error('No gaze predictions collected'));
-                        } else {
-                            resolve(accuracySum / totalPoints * 100);
-                        }
-                    }
+                    resolve((totalAccuracy / predictions.length) * 100);
                 } catch (error) {
-                    console.error('Error in prediction loop:', error); // Debug log
-                    clearInterval(checkInterval);
                     reject(error);
                 }
-            }, 50);
+            }, 2000); // Record for 2 seconds
         });
         
         console.log('Accuracy calculation complete:', accuracyValue); // Debug log

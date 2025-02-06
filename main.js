@@ -296,11 +296,37 @@ function calculateAverage(precisionPercentages) {
     return precision;
 }
 
+// Clear the canvas and hide calibration points
+function clearCanvas() {
+    clearMiddlePoint();
+    document.querySelectorAll('.Calibration').forEach(btn => {
+        btn.style.display = 'none';
+    });
+}
+
+// Clear calibration data
+function clearCalibration() {
+    // Clear data
+    PointCalibrate = 0;
+    CalibrationPoints = {};
+    
+    // Reset the calibration buttons
+    document.querySelectorAll('.Calibration').forEach(btn => {
+        btn.style.setProperty('background-color', 'yellow');
+    });
+}
+
+// Restart calibration
+function Restart() {
+    document.getElementById("Accuracy").innerHTML = "<a>Not yet Calibrated</a>";
+    webgazer.clearData();
+    clearCalibration();
+    clearCanvas();
+    ShowCalibrationPoint();
+}
+
 // Show calibration points
 function ShowCalibrationPoint() {
-    // Clear the canvas before showing points
-    clearCanvas();
-    
     // Show all calibration points
     document.querySelectorAll('.Calibration').forEach(btn => {
         btn.style.removeProperty('display');
@@ -387,14 +413,6 @@ async function calculateAccuracy() {
         document.getElementById('accuracy-value').textContent = 'Not Calibrated';
         throw error;
     }
-}
-
-// Clear the canvas and hide calibration points
-function clearCanvas() {
-    clearMiddlePoint();
-    document.querySelectorAll('.Calibration').forEach(btn => {
-        btn.style.display = 'none';
-    });
 }
 
 // Recording variables
@@ -573,36 +591,6 @@ function startRecording() {
             minutes.toString().padStart(2, '0') + ':' + 
             seconds.toString().padStart(2, '0');
     }, 1000);
-}
-
-// Restart calibration
-function Restart() {
-    // Hide recording controls
-    document.getElementById('recording-controls').style.display = 'none';
-    document.getElementById('start-recording').style.display = 'none';
-    document.getElementById('stop-recording').style.display = 'none';
-    
-    document.querySelectorAll('.Calibration').forEach(point => {
-        point.style.setProperty('display', 'block', 'important');
-        point.style.setProperty('visibility', 'visible', 'important');
-        point.style.backgroundColor = 'red';
-        point.style.setProperty('opacity', '0.7', 'important');
-        point.disabled = false;
-        point.classList.remove('next-point');
-    });
-    
-    CalibrationPoints = {};
-    PointCalibrate = 0;
-    
-    document.getElementById('accuracy-value').textContent = 'Not Calibrated';
-    document.getElementById('status').innerHTML = 
-        '<p>Click on each point 5 times to calibrate</p>';
-    document.querySelector('.progress-bar').style.width = '0%';
-    document.querySelector('.next-point-text').textContent = '';
-    
-    // Highlight first point
-    document.getElementById('Pt1').classList.add('next-point');
-    document.querySelector('.next-point-text').textContent = 'Start with point 1';
 }
 
 // Cleanup on window close

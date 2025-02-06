@@ -8,6 +8,23 @@
     <script src="webgazer.js"></script>
 </head>
 <body>
+    <nav id="webgazerNavbar" class="navbar navbar-expand-lg navbar-default navbar-fixed-top">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#myNavbar">
+                    <span class="navbar-toggler-icon">Menu</span>
+                </button>
+            </div>
+            <div class="collapse navbar-collapse" id="myNavbar">
+                <ul class="nav navbar-nav">
+                    <li id="Accuracy"><a>Not yet Calibrated</a></li>
+                    <li><a onclick="Restart()" href="#">Recalibrate</a></li>
+                    <li><a onclick="webgazer.applyKalmanFilter(!webgazer.params.applyKalmanFilter)" href="#">Toggle Kalman Filter</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
     <canvas id="plotting_canvas" width="500" height="500" style="cursor:crosshair;"></canvas>
 
     <!-- Calibration points -->

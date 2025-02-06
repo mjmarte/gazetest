@@ -104,11 +104,20 @@ function calPointClick(node) {
     if (PointCalibrate == 7) {
         const middlePoint = document.getElementById('Pt5');
         const lastPoint = document.getElementById('Pt9');
-        middlePoint.style.display = 'block';
-        lastPoint.style.display = 'block';
+        
+        // Make sure to remove any previous display: none
+        middlePoint.style.removeProperty('display');
+        lastPoint.style.removeProperty('display');
+        
+        // Add highlighting to middle point
+        document.querySelectorAll('.Calibration').forEach(p => p.classList.remove('next-point'));
         middlePoint.classList.add('next-point');
+        
+        // Update status text
         document.querySelector('.next-point-text').textContent = 
             'Now click the center point';
+            
+        console.log('Showing middle point:', middlePoint.style.display); // Debug
     }
 
     // Update progress bar
@@ -244,11 +253,11 @@ function Restart() {
         point.disabled = false;
         point.classList.remove('next-point');
         if (point.id !== 'Pt5' && point.id !== 'Pt9') {
-            point.style.display = 'block';
+            point.style.removeProperty('display');
+        } else {
+            point.style.setProperty('display', 'none');
         }
     });
-    document.getElementById('Pt5').style.display = 'none';
-    document.getElementById('Pt9').style.display = 'none';
     
     CalibrationPoints = {};
     PointCalibrate = 0;
@@ -263,6 +272,8 @@ function Restart() {
     // Highlight first point
     document.getElementById('Pt1').classList.add('next-point');
     document.querySelector('.next-point-text').textContent = 'Start with point 1';
+    
+    console.log('After restart - middle point display:', document.getElementById('Pt5').style.display); // Debug
 }
 
 // Cleanup on window close

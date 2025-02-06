@@ -156,11 +156,23 @@ function calculateAccuracy() {
     }
 }
 
+// Format date to YYYY-MM-DD HH:mm:ss.SSS
+function formatDate(date) {
+    const pad = (n) => n.toString().padStart(2, '0');
+    return date.getFullYear() + '-' +
+           pad(date.getMonth() + 1) + '-' +
+           pad(date.getDate()) + ' ' +
+           pad(date.getHours()) + ':' +
+           pad(date.getMinutes()) + ':' +
+           pad(date.getSeconds()) + '.' +
+           date.getMilliseconds().toString().padStart(3, '0');
+}
+
 // Start recording
 function startRecording() {
     isRecording = true;
     recordingStartTime = new Date();
-    sessionId = new Date().getTime();
+    sessionId = formatDate(recordingStartTime);
     recordingData = [];
     
     // Update UI
@@ -183,7 +195,7 @@ function startRecording() {
 function recordGazeData(x, y) {
     if (!isRecording) return;
     recordingData.push({
-        timestamp: new Date().getTime(),
+        timestamp: formatDate(new Date()),
         x: Math.round(x),
         y: Math.round(y)
     });
@@ -207,7 +219,7 @@ function stopRecording() {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `gaze_data_${sessionId}.csv`);
+    link.setAttribute('download', `gaze_data_${sessionId.replace(/[: ]/g, '-')}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();

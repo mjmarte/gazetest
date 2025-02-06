@@ -149,17 +149,10 @@ function calPointClick(node) {
         document.getElementById('status').innerHTML = 
             '<p>Calibration complete! Calculating accuracy...</p>';
         
-        // Wait for WebGazer to process the calibration
+        // Wait a moment for WebGazer to stabilize
         setTimeout(async () => {
             try {
-                // Force WebGazer to update its internal state
-                await webgazer.store();
-                console.log('WebGazer calibration stored'); // Debug log
-                
-                // Wait a moment for WebGazer to stabilize
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                // Now calculate accuracy
+                // Calculate accuracy
                 await calculateAccuracy();
             } catch (error) {
                 console.error('Error during accuracy calculation:', error);

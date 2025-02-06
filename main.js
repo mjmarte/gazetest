@@ -250,6 +250,51 @@ function formatDate(date) {
            date.getMilliseconds().toString().padStart(3, '0');
 }
 
+// Record gaze data
+function recordGazeData(x, y) {
+    if (!isRecording) return;
+    
+    const timestamp = new Date();
+    const elapsedMs = timestamp - recordingStartTime;
+    recordingData.push({
+        timestamp: formatDate(timestamp),
+        elapsed_ms: elapsedMs,
+        x: Math.round(x),
+        y: Math.round(y)
+    });
+}
+
+// Stop recording
+function stopRecording() {
+    if (!isRecording) return;
+    isRecording = false;
+    clearInterval(recordingInterval);
+    
+    // Create CSV content
+    const csvContent = ['timestamp,elapsed_ms,x,y'];
+    recordingData.forEach(data => {
+        csvContent.push(`${data.timestamp},${data.elapsed_ms},${data.x},${data.y}`);
+    });
+    
+    // Create and trigger download
+    const blob = new Blob([csvContent.join('\n')], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('href', url);
+    a.setAttribute('download', `gaze_data_${sessionId}.csv`);
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    
+    // Reset UI
+    document.getElementById('stop-recording').style.display = 'none';
+    document.getElementById('start-recording').style.removeProperty('display');
+    document.getElementById('recording-time').textContent = '00:00';
+    document.getElementById('session-id').textContent = '';
+    recordingData = [];
+}
+
 // Start recording
 function startRecording() {
     isRecording = true;
@@ -271,46 +316,6 @@ function startRecording() {
             minutes.toString().padStart(2, '0') + ':' + 
             seconds.toString().padStart(2, '0');
     }, 1000);
-}
-
-// Record gaze data
-function recordGazeData(x, y) {
-    if (!isRecording) return;
-    recordingData.push({
-        timestamp: formatDate(new Date()),
-        x: Math.round(x),
-        y: Math.round(y)
-    });
-}
-
-// Stop recording
-function stopRecording() {
-    if (!isRecording) return;
-    
-    isRecording = false;
-    clearInterval(recordingInterval);
-    
-    // Create CSV content
-    const csvContent = 'timestamp,x,y\n' + 
-        recordingData.map(row => 
-            `${row.timestamp},${row.x},${row.y}`
-        ).join('\n');
-    
-    // Download CSV file
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `gaze_data_${sessionId.replace(/[: ]/g, '-')}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    // Reset UI
-    document.getElementById('stop-recording').style.display = 'none';
-    document.getElementById('start-recording').style.removeProperty('display');
-    document.getElementById('recording-time').textContent = '00:00';
 }
 
 // Restart calibration

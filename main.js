@@ -121,106 +121,84 @@ function updateProgress() {
     document.querySelector('.progress-bar').style.width = progressPercent + '%';
 }
 
-// Calculate accuracy
+// Calculate accuracy after calibration
 function calculateAccuracy() {
-    // Store points for 5 seconds
-    const startTime = performance.now();
-    const points = [];
-    
-    const gazeListener = function(data, clock) {
-        if (data == null) return;
-        points.push({x: data.x, y: data.y});
-    };
-    
-    webgazer.setGazeListener(gazeListener);
-    
-    setTimeout(function() {
-        webgazer.setGazeListener(null);
-        
-        // Calculate precision (variance of predictions)
-        let sumX = 0, sumY = 0;
-        points.forEach(p => {
-            sumX += p.x;
-            sumY += p.y;
-        });
-        
-        const avgX = sumX / points.length;
-        const avgY = sumY / points.length;
-        
-        let variance = 0;
-        points.forEach(p => {
-            variance += Math.sqrt(
-                Math.pow(p.x - avgX, 2) + 
-                Math.pow(p.y - avgY, 2)
-            );
-        });
-        
-        const precision = 100 - (variance / points.length / 10);
-        const accuracyScore = Math.round(precision);
-        document.getElementById('accuracy-value').textContent = accuracyScore + '%';
-        
-        // Hide calibration points except middle one
-        document.querySelectorAll('.Calibration').forEach(point => {
-            if (point.id !== 'Pt5') {
-                point.style.display = 'none';
-            }
-        });
+    // Get accuracy score from webgazer
+    var accuracyScore = webgazer.getTracker().getEyePatches();
+    document.getElementById('accuracy-value').textContent = 
+        accuracyScore ? Math.round(accuracyScore * 100) + '%' : '50%';
 
-        // Show recording controls if accuracy is good enough
-        if (accuracyScore >= 50) {
-            document.getElementById('recording-controls').style.display = 'block';
-            document.getElementById('status').innerHTML = 
-                '<p>Calibration complete! You can now start recording.</p>';
-        } else {
-            document.getElementById('status').innerHTML = 
-                '<p>Calibration accuracy too low. Please recalibrate.</p>';
-            setTimeout(Restart, 3000);
-        }
-    }, 5000);
+    // Show recording controls
+    document.getElementById('recording-controls').style.removeProperty('display');
+    document.getElementById('start-recording').style.removeProperty('display');
+    document.getElementById('stop-recording').style.display = 'none';
+    
+    // Update status
+    document.getElementById('status').innerHTML = 
+        '<p>Calibration complete! Click "Start Recording" to begin.</p>';
 }
 
 // Start recording
 function startRecording() {
     isRecording = true;
-    recordingStartTime = new Date().getTime();
+    recordingStartTime = new Date();
+    sessionId = new Date().getTime();
     recordingData = [];
-    document.getElementById('start-recording').style.display = 'none';
-    document.getElementById('stop-recording').style.display = 'inline-block';
-    document.getElementById('session-id').textContent = new Date().toISOString();
     
-    // Update recording time
+    // Update UI
+    document.getElementById('start-recording').style.display = 'none';
+    document.getElementById('stop-recording').style.removeProperty('display');
+    document.getElementById('session-id').textContent = sessionId;
+    
+    // Start recording time display
     recordingInterval = setInterval(() => {
-        const elapsed = new Date().getTime() - recordingStartTime;
-        const seconds = Math.floor(elapsed / 1000);
-        const minutes = Math.floor(seconds / 60);
+        const elapsed = new Date() - recordingStartTime;
+        const minutes = Math.floor(elapsed / 60000);
+        const seconds = Math.floor((elapsed % 60000) / 1000);
         document.getElementById('recording-time').textContent = 
-            `${minutes.toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
+            minutes.toString().padStart(2, '0') + ':' + 
+            seconds.toString().padStart(2, '0');
     }, 1000);
+}
+
+// Record gaze data
+function recordGazeData(x, y) {
+    if (!isRecording) return;
+    recordingData.push({
+        timestamp: new Date().getTime(),
+        x: Math.round(x),
+        y: Math.round(y)
+    });
 }
 
 // Stop recording
 function stopRecording() {
+    if (!isRecording) return;
+    
     isRecording = false;
     clearInterval(recordingInterval);
-    document.getElementById('start-recording').style.display = 'inline-block';
+    
+    // Create CSV content
+    const csvContent = 'timestamp,x,y\n' + 
+        recordingData.map(row => 
+            `${row.timestamp},${row.x},${row.y}`
+        ).join('\n');
+    
+    // Download CSV file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `gaze_data_${sessionId}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Reset UI
     document.getElementById('stop-recording').style.display = 'none';
-    
-    // Prepare CSV content
-    const csvContent = ['timestamp,x,y'];
-    recordingData.forEach(point => {
-        csvContent.push(`${point.timestamp},${point.x},${point.y}`);
-    });
-    
-    // Create and download file
-    const blob = new Blob([csvContent.join('\n')], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.setAttribute('href', url);
-    a.setAttribute('download', `gaze_data_${new Date().toISOString()}.csv`);
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    document.getElementById('start-recording').style.removeProperty('display');
+    document.getElementById('recording-time').textContent = '00:00';
 }
 
 // Restart calibration

@@ -128,32 +128,63 @@ function updateProgress() {
 
 // Calculate accuracy after calibration
 function calculateAccuracy() {
-    // Get accuracy score from webgazer
-    var accuracyScore = webgazer.getTracker().getEyePatches();
-    var score = accuracyScore ? Math.round(accuracyScore * 100) : 50;
-    document.getElementById('accuracy-value').textContent = score + '%';
-
-    // Only show recording controls if accuracy is good enough
-    if (score >= 50) {
-        // Show recording controls
-        document.getElementById('recording-controls').style.display = 'block';
-        document.getElementById('start-recording').style.display = 'block';
-        document.getElementById('stop-recording').style.display = 'none';
+    // Store points for 100ms to get a quick sample
+    const points = [];
+    let startTime = performance.now();
+    
+    function collectPoints(data) {
+        if (!data) return;
+        points.push({x: data.x, y: data.y});
         
-        // Update status
-        document.getElementById('status').innerHTML = 
-            '<p>Calibration complete! Click "Start Recording" to begin.</p>';
-    } else {
-        // Hide recording controls
-        document.getElementById('recording-controls').style.display = 'none';
-        document.getElementById('start-recording').style.display = 'none';
-        document.getElementById('stop-recording').style.display = 'none';
-        
-        // Update status and restart
-        document.getElementById('status').innerHTML = 
-            '<p>Calibration accuracy too low. Please recalibrate.</p>';
-        setTimeout(Restart, 3000);
+        // After 100ms, calculate accuracy
+        if (performance.now() - startTime > 100) {
+            webgazer.clearGazeListener();
+            
+            // Calculate average position
+            const avgX = points.reduce((sum, p) => sum + p.x, 0) / points.length;
+            const avgY = points.reduce((sum, p) => sum + p.y, 0) / points.length;
+            
+            // Calculate standard deviation
+            const variance = points.reduce((sum, p) => {
+                const dx = p.x - avgX;
+                const dy = p.y - avgY;
+                return sum + Math.sqrt(dx * dx + dy * dy);
+            }, 0) / points.length;
+            
+            // Convert to a percentage (lower variance = higher accuracy)
+            // Cap at 100, floor at 0
+            const accuracyScore = Math.min(100, Math.max(0, 
+                Math.round(100 - (variance / 5))  // Divide by 5 to scale the variance
+            ));
+            
+            document.getElementById('accuracy-value').textContent = accuracyScore + '%';
+            
+            // Only show recording controls if accuracy is good enough
+            if (accuracyScore >= 50) {
+                // Show recording controls
+                document.getElementById('recording-controls').style.display = 'block';
+                document.getElementById('start-recording').style.display = 'block';
+                document.getElementById('stop-recording').style.display = 'none';
+                
+                // Update status
+                document.getElementById('status').innerHTML = 
+                    '<p>Calibration complete! Click "Start Recording" to begin.</p>';
+            } else {
+                // Hide recording controls
+                document.getElementById('recording-controls').style.display = 'none';
+                document.getElementById('start-recording').style.display = 'none';
+                document.getElementById('stop-recording').style.display = 'none';
+                
+                // Update status and restart
+                document.getElementById('status').innerHTML = 
+                    '<p>Calibration accuracy too low. Please recalibrate.</p>';
+                setTimeout(Restart, 3000);
+            }
+        }
     }
+    
+    // Set up temporary gaze listener
+    webgazer.setGazeListener(collectPoints);
 }
 
 // Format date to YYYY-MM-DD HH:mm:ss.SSS

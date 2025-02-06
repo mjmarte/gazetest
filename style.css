@@ -1,0 +1,88 @@
+/* Video feed styling */
+#webgazerVideoContainer {
+    display: block !important;
+    position: fixed !important;
+    top: 0px !important;
+    left: 0px !important;
+    width: 320px !important;
+    height: 240px !important;
+    z-index: 1;
+}
+
+/* Calibration points */
+.Calibration {
+    width: 20px;
+    height: 20px;
+    background-color: red;
+    border: none;
+    border-radius: 50%;
+    position: fixed;
+    opacity: 0.2;
+    z-index: 999;
+}
+
+/* Point positions */
+#Pt1 { left: 340px; top: 20px; }
+#Pt2 { right: 340px; top: 20px; }
+#Pt3 { right: 20px; top: 20px; }
+#Pt4 { left: 340px; top: 50%; }
+#Pt5 { right: 50%; top: 50%; }
+#Pt6 { right: 20px; top: 50%; }
+#Pt7 { left: 340px; bottom: 20px; }
+#Pt8 { right: 340px; bottom: 20px; }
+#Pt9 { right: 20px; bottom: 20px; }
+
+/* Status text */
+#status {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 10px;
+    border-radius: 5px;
+}
+
+/* Progress bar */
+.progress {
+    position: fixed;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    z-index: 100;
+}
+
+/* Accuracy display */
+#accuracy {
+    position: fixed;
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 10px;
+    border-radius: 5px;
+}
+
+/* Gaze coordinates */
+#gaze {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 10px;
+    border-radius: 5px;
+}
+
+/* Canvas */
+#plotting_canvas {
+    cursor: crosshair;
+    position: fixed;
+    top: 0;
+    left: 0;
+    margin: 0;
+    z-index: 0;
+}

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>WebGazer Demo</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
+</head>
+<body>
+    <canvas id="plotting_canvas" width="500" height="500" style="cursor:crosshair;"></canvas>
+
+    <!-- Calibration points -->
+    <div class="calibrationDiv">
+        <input type="button" class="Calibration" id="Pt1"></input>
+        <input type="button" class="Calibration" id="Pt2"></input>
+        <input type="button" class="Calibration" id="Pt3"></input>
+        <input type="button" class="Calibration" id="Pt4"></input>
+        <input type="button" class="Calibration" id="Pt5"></input>
+        <input type="button" class="Calibration" id="Pt6"></input>
+        <input type="button" class="Calibration" id="Pt7"></input>
+        <input type="button" class="Calibration" id="Pt8"></input>
+        <input type="button" class="Calibration" id="Pt9"></input>
+    </div>
+
+    <!-- Status text -->
+    <div id="status">
+        <p>Click on each point 5 times to calibrate</p>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="progress">
+        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+    </div>
+
+    <!-- Accuracy display -->
+    <div id="accuracy">
+        <p>Accuracy: <span id="accuracy-value">Not Calibrated</span></p>
+    </div>
+
+    <!-- Gaze coordinates -->
+    <div id="gaze">
+        <p>X: <span id="gaze-x">0</span></p>
+        <p>Y: <span id="gaze-y">0</span></p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>

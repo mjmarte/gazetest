@@ -7,6 +7,11 @@ var recordingInterval = null;
 
 // Initialize webgazer
 window.onload = async function() {
+    // Hide recording controls initially
+    document.getElementById('recording-controls').style.display = 'none';
+    document.getElementById('start-recording').style.display = 'none';
+    document.getElementById('stop-recording').style.display = 'none';
+
     webgazer.setRegression('ridge')
         .setTracker('TFFacemesh')
         .setGazeListener(function(data, elapsedTime) {
@@ -125,17 +130,30 @@ function updateProgress() {
 function calculateAccuracy() {
     // Get accuracy score from webgazer
     var accuracyScore = webgazer.getTracker().getEyePatches();
-    document.getElementById('accuracy-value').textContent = 
-        accuracyScore ? Math.round(accuracyScore * 100) + '%' : '50%';
+    var score = accuracyScore ? Math.round(accuracyScore * 100) : 50;
+    document.getElementById('accuracy-value').textContent = score + '%';
 
-    // Show recording controls
-    document.getElementById('recording-controls').style.removeProperty('display');
-    document.getElementById('start-recording').style.removeProperty('display');
-    document.getElementById('stop-recording').style.display = 'none';
-    
-    // Update status
-    document.getElementById('status').innerHTML = 
-        '<p>Calibration complete! Click "Start Recording" to begin.</p>';
+    // Only show recording controls if accuracy is good enough
+    if (score >= 50) {
+        // Show recording controls
+        document.getElementById('recording-controls').style.display = 'block';
+        document.getElementById('start-recording').style.display = 'block';
+        document.getElementById('stop-recording').style.display = 'none';
+        
+        // Update status
+        document.getElementById('status').innerHTML = 
+            '<p>Calibration complete! Click "Start Recording" to begin.</p>';
+    } else {
+        // Hide recording controls
+        document.getElementById('recording-controls').style.display = 'none';
+        document.getElementById('start-recording').style.display = 'none';
+        document.getElementById('stop-recording').style.display = 'none';
+        
+        // Update status and restart
+        document.getElementById('status').innerHTML = 
+            '<p>Calibration accuracy too low. Please recalibrate.</p>';
+        setTimeout(Restart, 3000);
+    }
 }
 
 // Start recording
@@ -203,6 +221,11 @@ function stopRecording() {
 
 // Restart calibration
 function Restart() {
+    // Hide recording controls
+    document.getElementById('recording-controls').style.display = 'none';
+    document.getElementById('start-recording').style.display = 'none';
+    document.getElementById('stop-recording').style.display = 'none';
+    
     document.querySelectorAll('.Calibration').forEach(point => {
         point.style.setProperty('display', 'block', 'important');
         point.style.setProperty('visibility', 'visible', 'important');
@@ -219,7 +242,6 @@ function Restart() {
     document.getElementById('status').innerHTML = 
         '<p>Click on each point 5 times to calibrate</p>';
     document.querySelector('.progress-bar').style.width = '0%';
-    document.getElementById('recording-controls').style.display = 'none';
     document.querySelector('.next-point-text').textContent = '';
     
     // Highlight first point

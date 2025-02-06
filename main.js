@@ -297,40 +297,43 @@ function calculateAverage(precisionPercentages) {
 }
 
 // Clear the canvas and hide calibration points
-function clearCanvas() {
-    clearMiddlePoint();
-    document.querySelectorAll('.Calibration').forEach(btn => {
-        btn.style.display = 'none';
+function ClearCanvas(){
+    document.querySelectorAll('.Calibration').forEach((i) => {
+        i.style.setProperty('display', 'none');
     });
+    var canvas = document.getElementById("plotting_canvas");
+    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
 }
 
 // Clear calibration data
-function clearCalibration() {
-    // Clear data
-    PointCalibrate = 0;
-    CalibrationPoints = {};
-    
-    // Reset the calibration buttons
-    document.querySelectorAll('.Calibration').forEach(btn => {
-        btn.style.setProperty('background-color', 'yellow');
+function ClearCalibration(){
+    // Clear data from WebGazer
+    document.querySelectorAll('.Calibration').forEach((i) => {
+        i.style.setProperty('background-color', 'red');
+        i.style.setProperty('opacity', '0.2');
+        i.removeAttribute('disabled');
     });
+
+    CalibrationPoints = {};
+    PointCalibrate = 0;
 }
 
 // Restart calibration
 function Restart() {
     document.getElementById("Accuracy").innerHTML = "<a>Not yet Calibrated</a>";
     webgazer.clearData();
-    clearCalibration();
-    clearCanvas();
+    ClearCalibration();
+    ClearCanvas();
     ShowCalibrationPoint();
 }
 
 // Show calibration points
 function ShowCalibrationPoint() {
-    // Show all calibration points
-    document.querySelectorAll('.Calibration').forEach(btn => {
-        btn.style.removeProperty('display');
+    document.querySelectorAll('.Calibration').forEach((i) => {
+        i.style.removeProperty('display');
     });
+    // initially hides the middle button
+    document.getElementById('Pt5').style.setProperty('display', 'none');
 }
 
 // Calculate accuracy after calibration
@@ -394,7 +397,7 @@ async function calculateAccuracy() {
         
         if (result) {
             // User clicked confirm
-            clearCanvas();
+            ClearCanvas();
             // Show recording controls after successful calibration
             document.getElementById('recording-controls').style.removeProperty('display');
             document.getElementById('start-recording').style.removeProperty('display');
@@ -402,7 +405,8 @@ async function calculateAccuracy() {
             // User clicked Recalibrate
             document.getElementById("Accuracy").innerHTML = "<a>Not yet Calibrated</a>";
             webgazer.clearData();
-            clearCanvas();
+            ClearCalibration();
+            ClearCanvas();
             ShowCalibrationPoint();
         }
         

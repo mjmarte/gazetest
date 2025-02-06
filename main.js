@@ -235,6 +235,50 @@ function removeAccuracyCircle() {
     }
 }
 
+// Calculate precision from prediction points
+function calculatePrecision(past50Array) {
+    let windowHeight = window.innerHeight;
+    let windowWidth = window.innerWidth;
+    
+    // Retrieve the middle point of the canvas
+    const canvas = document.getElementById("plotting_canvas");
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+
+    let precision = 0;
+    let dataLength = past50Array[0].length;
+    
+    for (let i = 0; i < dataLength; i++) {
+        // Calculate distance between each prediction and center point
+        let xDiff = past50Array[0][i] - centerX;
+        let yDiff = past50Array[1][i] - centerY;
+        let distance = Math.sqrt((xDiff * xDiff) + (yDiff * yDiff));
+        
+        // Calculate precision based on distance
+        // The closer the predictions are to the center point, the higher the precision
+        precision += Math.max(0, 100 - (distance / Math.min(windowWidth, windowHeight) * 100));
+    }
+    
+    // Calculate average precision
+    precision = precision / dataLength;
+    
+    // Round to 2 decimal places
+    precision = Math.round(precision * 100) / 100;
+    
+    return precision;
+}
+
+// Show calibration points
+function ShowCalibrationPoint() {
+    // Clear the canvas before showing points
+    clearCanvas();
+    
+    // Show all calibration points
+    document.querySelectorAll('.Calibration').forEach(btn => {
+        btn.style.removeProperty('display');
+    });
+}
+
 // Calculate accuracy after calibration
 async function calculateAccuracy() {
     try {

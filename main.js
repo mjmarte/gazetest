@@ -127,8 +127,34 @@ function updateProgress() {
     document.querySelector('.progress-bar').style.width = progressPercent + '%';
 }
 
+// Function to show accuracy calculation circle
+function showAccuracyCircle() {
+    const circle = document.createElement('div');
+    circle.id = 'accuracy-circle';
+    circle.style.position = 'fixed';
+    circle.style.width = '20px';
+    circle.style.height = '20px';
+    circle.style.borderRadius = '50%';
+    circle.style.backgroundColor = 'red';
+    circle.style.left = '50%';
+    circle.style.top = '50%';
+    circle.style.transform = 'translate(-50%, -50%)';
+    circle.style.zIndex = '1000';
+    document.body.appendChild(circle);
+}
+
+// Function to remove accuracy calculation circle
+function removeAccuracyCircle() {
+    const circle = document.getElementById('accuracy-circle');
+    if (circle) {
+        circle.remove();
+    }
+}
+
 // Calculate accuracy after calibration
 function calculateAccuracy() {
+    showAccuracyCircle();
+    
     // Store points for 5 seconds
     const points = {x: [], y: []};
     let startTime = performance.now();
@@ -200,6 +226,7 @@ function calculateAccuracy() {
                     '<p>Calibration accuracy too low. Please recalibrate.</p>';
                 setTimeout(Restart, 3000);
             }
+            removeAccuracyCircle();
         }
     }
     

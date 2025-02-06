@@ -1,439 +1,120 @@
-/* Video feed styling */
-#webgazerVideoContainer {
-    display: block !important;
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 320px !important;
-    height: 240px !important;
-    z-index: 1 !important;
-}
-
-#webgazerVideoFeed {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 320px !important;
-    height: 240px !important;
-    transform: scaleX(-1) !important;
-}
-
-#webgazerFaceOverlay {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 320px !important;
-    height: 240px !important;
-}
-
-#webgazerFaceFeedbackBox {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 320px !important;
-    height: 240px !important;
-}
-
-/* Calibration points */
-.Calibration {
-    width: 20px;
-    height: 20px;
-    background-color: yellow;
-    border: none;
-    border-radius: 50%;
-    position: absolute;
-    z-index: 1;
-}
-
-/* Point positions - moved left to account for smaller video */
-#Pt1 { left: 200px; top: 20px; }
-#Pt2 { left: 50%; top: 20px; transform: translateX(-50%); }
-#Pt3 { left: calc(100% - 40px); top: 20px; }
-#Pt4 { left: 200px; top: 50%; transform: translateY(-50%); }
-#Pt5 { left: 50%; top: 50%; transform: translate(-50%, -50%); }
-#Pt6 { left: calc(100% - 40px); top: 50%; transform: translateY(-50%); }
-#Pt7 { left: 200px; bottom: 20px; }
-#Pt8 { left: 50%; bottom: 20px; transform: translateX(-50%); }
-#Pt9 { left: calc(100% - 40px); bottom: 20px; }
-
-/* Status text */
-#status {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(255, 255, 255, 0.9);
-    padding: 10px;
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    z-index: 2;
-    text-align: center;
-}
-
-/* Progress bar */
-.progress {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 300px;
-    z-index: 2;
-}
-
-/* Accuracy display */
-#accuracy {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: rgba(255, 255, 255, 0.9);
-    padding: 10px;
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    z-index: 2;
-}
-
-/* Gaze coordinates */
-#gaze {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: rgba(255, 255, 255, 0.9);
-    padding: 10px;
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    z-index: 2;
-}
-
-/* Recording controls */
-#recording-controls {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    background: rgba(255, 255, 255, 0.9);
-    padding: 15px;
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    z-index: 2;
-}
-
-#recording-controls button {
-    margin: 5px;
-}
-
-/* Canvas */
-#plotting_canvas {
-    cursor: crosshair;
-    position: absolute;
-    z-index: 1;
-    width: 100%;
-    height: 100%;
-}
-
-/* Navbar styles */
-#webgazerNavbar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 2;
-    background: rgba(255, 255, 255, 0.9);
-    padding: 10px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
-
 body {
-    min-height: 100vh;
-    margin: 0;
-    padding: 0;
+    min-width:600px!important;
 }
 
-canvas {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    z-index: 0;
-}
-
-/* Calibration points */
-.calibrationDiv {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: stretch;
-    padding: 50px;
-    pointer-events: none;
-    z-index: 1;
-}
-
-.Calibration {
-    width: 20px;
-    height: 20px;
-    background-color: red;
-    border-radius: 50%;
-    border: none;
-    pointer-events: auto;
-    opacity: 0.2;
-    position: relative;
-    transition: opacity 0.2s ease-in-out;
-}
-
-.Calibration.next-point {
-    animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
-}
-
-/* Navigation bar */
-#webgazerNavbar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    z-index: 2;
-    background-color: rgba(255, 255, 255, 0.9);
-    padding: 10px 20px;
-}
-
-/* Status messages */
-.status-msg {
-    position: fixed;
-    top: 70px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: rgba(255, 255, 255, 0.9);
-    padding: 10px 20px;
-    border-radius: 5px;
-    z-index: 2;
-}
-
-.next-point-text {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: rgba(255, 255, 255, 0.9);
-    padding: 10px 20px;
-    border-radius: 5px;
-    z-index: 2;
-}
-
-/* Recording controls */
-#recording-controls {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background-color: rgba(255, 255, 255, 0.9);
-    padding: 10px;
-    border-radius: 5px;
-    z-index: 2;
-}
-
-#recording-info {
-    margin-top: 10px;
-    font-size: 0.9em;
-}
-
-#recording-info span {
-    display: block;
-    margin: 5px 0;
-}
-
-/* Buttons */
 button {
-    padding: 8px 16px;
-    margin: 5px;
-    border: none;
     border-radius: 4px;
-    cursor: pointer;
-    background-color: #007bff;
-    color: white;
-    transition: background-color 0.2s;
 }
-
-button:hover {
-    background-color: #0056b3;
+/* Video Feed Styling */
+#overlay {
+/* Video Feed Styling:
+ * Include the !important keyword to override default styles applied by JS.
+ * webgazer.js sets defaults for: display, position, top, left, width, height
+ */
 }
-
-#stop-recording {
-    background-color: #dc3545;
-}
-
-#stop-recording:hover {
-    background-color: #c82333;
-}
-
-/* Base layout */
-body {
-    min-height: 100vh;
-    margin: 0;
-    padding: 0;
-}
-
-/* WebGazer video feed */
-#webgazerVideoCanvas {
+#webgazerVideoContainer {
+    display: block !important; 
     position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
+    top: 0px !important;
+    left: 0px !important;
     width: 320px !important;
     height: 240px !important;
-    z-index: 2 !important;
+    z-index: 1;
 }
 
-#webgazerFaceOverlay {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 320px !important;
-    height: 240px !important;
-    z-index: 3 !important;
-}
-
-#webgazerFaceFeedbackBox {
-    top: 0 !important;
-    left: 320px !important;
-}
-
-/* Plotting canvas */
-#plotting_canvas {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    z-index: 1 !important;
-    pointer-events: none !important;
-}
-
-/* Calibration points */
-.calibrationDiv {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    grid-template-rows: repeat(3, 1fr) !important;
-    padding: 100px !important;
-    z-index: 10 !important;
-    pointer-events: none !important;
-}
-
-.Calibration {
-    width: 20px !important;
-    height: 20px !important;
-    background-color: red !important;
-    border: none !important;
-    border-radius: 50% !important;
-    position: relative !important;
-    pointer-events: auto !important;
-    opacity: 0.2;
-    transition: all 0.2s ease-in-out !important;
-    margin: auto !important;
-    cursor: pointer !important;
-}
-
-.Calibration.next-point {
-    animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
-}
-
-/* Navigation bar */
+/* Navbar styling */
 #webgazerNavbar {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    z-index: 20 !important;
-    background-color: rgba(255, 255, 255, 0.9) !important;
-    padding: 10px 20px !important;
+    left: 320px;
+    width: calc(100% - 320px);
+    z-index: 0;
+    box-shadow: 0px 3px 5px #ddd;
+    border:0px;
+    background-color: #fff;
 }
 
-/* Status messages */
-.status-msg {
-    position: fixed !important;
-    top: 70px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    background-color: rgba(255, 255, 255, 0.9) !important;
-    padding: 10px 20px !important;
-    border-radius: 5px !important;
-    z-index: 20 !important;
+#Accuracy a{
+    background-color: #222;
+    color: #eee;
+    left: -15px;
+    padding-left: 80px;
+    padding-right: 40px;
+}
+#Accuracy {
+    background-color: #222;
+    padding-left: inherit;
 }
 
-.next-point-text {
-    position: fixed !important;
-    bottom: 20px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    background-color: rgba(255, 255, 255, 0.9) !important;
-    padding: 10px 20px !important;
-    border-radius: 5px !important;
-    z-index: 20 !important;
+li {
+    padding-left: 50px;
+}
+.navbar-right li {
+    padding-right: 20px;
 }
 
-/* Recording controls */
-#recording-controls {
-    display: none !important; /* Hidden by default, shown after calibration */
-    position: fixed !important;
-    bottom: 20px !important;
-    right: 20px !important;
-    background-color: rgba(255, 255, 255, 0.9) !important;
-    padding: 10px !important;
-    border-radius: 5px !important;
-    z-index: 20 !important;
+.helpBtn {
+    display: inline-block;
+    padding: 15px;
+    border: none;
+    background: none;
+    color: #777;
+}
+.helpBtn:hover {
+    color: black!important;
+    text-decoration: none;
+}
+.modal-header {
+    border-bottom: none!important;
 }
 
-#recording-info {
-    margin-top: 10px !important;
+/* Calibration button styling */
+.Calibration{
+    width: 20px;
+    height: 20px;
+    -webkit-border-radius: 25px;
+    -moz-border-radius: 25px;
+    border-radius: 25px;
+    background-color: red;
+    opacity: 0.2;
+    border-color: black;
+    border-style: solid;
+    position:fixed;
 }
 
-#recording-info span {
-    display: block !important;
-    margin: 5px 0 !important;
+/* Calibration point position */
+#Pt1{
+    top: 70px;
+    left:340px;
 }
-
-/* Buttons */
-button {
-    padding: 8px 16px !important;
-    margin: 5px !important;
-    border: none !important;
-    border-radius: 4px !important;
-    cursor: pointer !important;
-    background-color: #007bff !important;
-    color: white !important;
-    transition: background-color 0.2s !important;
+#Pt2{
+    top: 70px;
+    left:50vw;
+    margin-left: 340;
 }
-
-button:hover {
-    background-color: #0056b3 !important;
+#Pt3{
+    top: 70px;
+    right:2vw;
 }
-
-#start-recording {
-    display: none !important; /* Hidden by default, shown after calibration */
+#Pt4{
+    top:50vh;
+    left:2vw;
 }
-
-#stop-recording {
-    display: none !important;
-    background-color: #dc3545 !important;
+#Pt5{
+    top: 50vh;
+    left: 50vw;
 }
-
-#stop-recording:hover {
-    background-color: #c82333 !important;
+#Pt6{
+    top: 50vh;
+    right:2vw;
+}
+#Pt7{
+    bottom:2vw;
+    left: 2vw;
+}
+#Pt8{
+    bottom:2vw;
+    left:50vw;
+}
+#Pt9{
+    bottom:2vw;
+    right:2vw;
 }

@@ -1,54 +1,15 @@
 <!DOCTYPE html>
-<!--
-This is an example HTML that shows how WebGazer can be used on a website.
-This file provides the additional features:
-  * An integrated, intuitive and sleek action bar with an informative "help" module accessible at all times
-  * Structured 9-point calibration system
-  * Accuracy measure of predictions based on calibration process
-  * Video feedback regarding face positioning
-  * Improved eye predictions visible to the user
-Instructions on use can be found in the README repository.
--->
 <html>
     <head>
         <META HTTP-EQUIV="CONTENT-TYPE" CONTENT="text/html; charset=utf-8">
-        <TITLE>WebGazer Demo</TITLE>
-        <link rel="stylesheet" type="text/css" href="./css/style.css">
-        <link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.min.css">
-        <!-- <script src="./tensorflow.js"></script> -->
-        <script src="./webgazer.js"></script>
+        <title>Gaze Calibration</title>
+        <link rel="stylesheet" type="text/css" href="style.css">
+        <link rel="stylesheet" type="text/css" href="calibration.css">
+        <script src="webgazer.js"></script>
     </head>
     <body LANG="en-US" LINK="#0000ff" DIR="LTR">
-      <canvas id="plotting_canvas" width="500" height="500" style="cursor:crosshair;"></canvas>
+        <canvas id="plotting_canvas" width="500" height="500" style="cursor:crosshair;"></canvas>
 
-        <script src="./node_modules/sweetalert/dist/sweetalert.min.js"></script>
-
-        <script src="./js/main.js"></script>
-        <script src="./js/calibration.js"></script>
-        <script src="./js/precision_calculation.js"></script>
-        <script src="./js/precision_store_points.js"></script>
-
-        <nav id="webgazerNavbar" class="navbar navbar-expand-lg navbar-default navbar-fixed-top">
-          <div class="container-fluid">
-            <div class="navbar-header">
-              <!-- The hamburger menu button -->
-              <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#myNavbar">
-                <span class="navbar-toggler-icon">Menu</span>
-              </button>
-            </div>
-            <div class="collapse navbar-collapse" id="myNavbar">
-              <ul class="nav navbar-nav">
-                <!-- Accuracy -->
-                <li id="Accuracy"><a>Not yet Calibrated</a></li>
-                <li><a onclick="Restart()" href="#">Recalibrate</a></li>
-                <li><a onclick="webgazer.applyKalmanFilter(!webgazer.params.applyKalmanFilter)" href="#">Toggle Kalman Filter</a></li>
-              </ul>
-              <ul class="nav navbar-nav navbar-right">
-                <li><a class="helpBtn" onclick="helpModalShow()" href="#"><span class="glyphicon glyphicon-cog"></span> Help</a></li>
-              </ul>
-            </div>
-          </div>
-        </nav>
         <!-- Calibration points -->
         <div class="calibrationDiv">
             <input type="button" class="Calibration" id="Pt1"></input>
@@ -62,27 +23,158 @@ Instructions on use can be found in the README repository.
             <input type="button" class="Calibration" id="Pt9"></input>
         </div>
 
-        <!-- Modal -->
-        <div id="helpModal" class="modal fade" role="dialog">
-          <div class="modal-dialog">
-
-            <!-- Modal content-->
-            <div class="modal-content">
-              <div class="modal-body">
-                <img src="media/example/calibration.png" width="100%" height="100%" alt="webgazer demo instructions"></img>
-              </div>
-              <div class="modal-footer">
-                <button id="closeBtn" type="button" class="btn btn-default" data-bs-dismiss="modal">Close & load saved model </button>
-                <button type="button" id='start_calibration' class="btn btn-primary" data-bs-dismiss="modal" onclick="Restart()">Calibrate</button>
-              </div>
-            </div>
-
-          </div>
+        <!-- Recording controls (hidden until calibration complete) -->
+        <div id="recording-controls" style="display: none; position: fixed; bottom: 20px; left: 20px; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 5px;">
+            <button id="start-recording" class="btn btn-success">Start Recording</button>
+            <button id="stop-recording" class="btn btn-danger" style="display: none;">Stop Recording</button>
+            <p>Session: <span id="session-id">None</span></p>
+            <p>Recording Time: <span id="recording-time">00:00</span></p>
+            <p>Gaze X: <span id="gaze-x">0</span></p>
+            <p>Gaze Y: <span id="gaze-y">0</span></p>
         </div>
 
-        <!-- Latest compiled JavaScript -->
-        <script src="./js/resize_canvas.js"></script>
-        <script src="./node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="calibration.js"></script>
+        <script src="precision_calculation.js"></script>
+        <script src="precision_store_points.js"></script>
 
+        <script>
+            window.onload = async function() {
+                var width = 320;
+                var height = 240;
+                var topDist = '0px';
+                var leftDist = '0px';
+                
+                // Set up video feed positioning
+                var setup = function() {
+                    var video = document.getElementById('webgazerVideoFeed');
+                    video.style.display = 'block';
+                    video.style.position = 'fixed';
+                    video.style.top = topDist;
+                    video.style.left = leftDist;
+                    video.style.width = width + 'px';
+                    video.style.height = height + 'px';
+                    video.style.transform = 'scaleX(-1)';
+                    
+                    var overlay = document.getElementById('webgazerVideoFeed');
+                    overlay.style.position = 'fixed';
+                    overlay.style.top = topDist;
+                    overlay.style.left = leftDist;
+                    overlay.style.width = width + 'px';
+                    overlay.style.height = height + 'px';
+                };
+
+                // Initialize webgazer
+                await webgazer.setRegression('ridge')
+                    .setTracker('TFFacemesh')
+                    .setGazeListener(function(data, timestamp) {
+                        if (data == null) return;
+                        
+                        // Update gaze point display
+                        var xprediction = data.x;
+                        var yprediction = data.y;
+                        document.getElementById('gaze-x').textContent = Math.round(xprediction);
+                        document.getElementById('gaze-y').textContent = Math.round(yprediction);
+                    })
+                    .begin();
+                
+                webgazer.showVideoPreview(true)
+                    .showPredictionPoints(true)
+                    .applyKalmanFilter(true);
+
+                setup();
+                
+                // Rest of the recording functionality
+                let isRecording = false;
+                let recordingStartTime = null;
+                let gazeData = [];
+                let recordingInterval = null;
+                let frameRequestId = null;
+
+                window.startRecording = function() {
+                    if (isRecording) return;
+                    
+                    isRecording = true;
+                    recordingStartTime = performance.now();
+                    gazeData = [];
+                    
+                    document.getElementById('start-recording').style.display = 'none';
+                    document.getElementById('stop-recording').style.removeProperty('display');
+                    document.getElementById('session-id').textContent = new Date().toISOString();
+                    
+                    recordingInterval = setInterval(updateRecordingTime, 1000);
+                    requestAnimationFrame(recordGazeData);
+                };
+
+                function recordGazeData(timestamp) {
+                    if (!isRecording) return;
+                    
+                    const prediction = webgazer.getCurrentPrediction();
+                    if (prediction) {
+                        gazeData.push({
+                            timestamp: performance.now(),
+                            x: prediction.x,
+                            y: prediction.y,
+                            elapsedTime: performance.now() - recordingStartTime
+                        });
+                    }
+                    
+                    frameRequestId = requestAnimationFrame(recordGazeData);
+                }
+
+                function updateRecordingTime() {
+                    const elapsed = Date.now() - recordingStartTime;
+                    const minutes = Math.floor(elapsed / 60000);
+                    const seconds = Math.floor((elapsed % 60000) / 1000);
+                    document.getElementById('recording-time').textContent = 
+                        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+
+                window.stopRecording = function() {
+                    if (!isRecording) return;
+                    
+                    isRecording = false;
+                    clearInterval(recordingInterval);
+                    cancelAnimationFrame(frameRequestId);
+                    
+                    document.getElementById('stop-recording').style.display = 'none';
+                    document.getElementById('start-recording').style.removeProperty('display');
+                    
+                    const duration = (gazeData[gazeData.length - 1].timestamp - gazeData[0].timestamp) / 1000;
+                    const samplingRate = gazeData.length / duration;
+                    console.log(`Recording finished. Average sampling rate: ${samplingRate.toFixed(2)} Hz`);
+                    
+                    const csvContent = "data:text/csv;charset=utf-8," + 
+                        "timestamp,x,y,elapsedTime\n" +
+                        gazeData.map(row => 
+                            `${row.timestamp},${row.x},${row.y},${row.elapsedTime}`
+                        ).join("\n");
+                    
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", `gaze_data_${new Date().toISOString()}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                };
+
+                // Add event listeners
+                document.getElementById('start-recording').addEventListener('click', window.startRecording);
+                document.getElementById('stop-recording').addEventListener('click', window.stopRecording);
+
+                // Show recording controls after successful calibration
+                function checkCalibration() {
+                    if (window.precision > 0) {
+                        document.getElementById('recording-controls').style.display = 'block';
+                        clearInterval(calibrationChecker);
+                    }
+                }
+                const calibrationChecker = setInterval(checkCalibration, 1000);
+            };
+
+            window.onbeforeunload = function() {
+                webgazer.end();
+            }
+        </script>
     </body>
 </html>

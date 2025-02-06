@@ -123,8 +123,14 @@ function calPointClick(node) {
 
     // If calibration is complete
     if (PointCalibrate >= 9) {
-        // Calculate accuracy
-        calculateAccuracy();
+        // Update status
+        document.getElementById('status').innerHTML = 
+            '<p>Calibration complete! Calculating accuracy...</p>';
+        
+        // Calculate accuracy after a short delay to allow UI to update
+        setTimeout(() => {
+            calculateAccuracy();
+        }, 500);
     }
 }
 
@@ -143,18 +149,23 @@ function updateProgress() {
 
 // Function to show accuracy calculation circle
 function showAccuracyCircle() {
-    const circle = document.createElement('div');
-    circle.id = 'accuracy-circle';
-    circle.style.position = 'fixed';
-    circle.style.width = '20px';
-    circle.style.height = '20px';
-    circle.style.borderRadius = '50%';
-    circle.style.backgroundColor = 'red';
-    circle.style.left = '50%';
-    circle.style.top = '50%';
-    circle.style.transform = 'translate(-50%, -50%)';
-    circle.style.zIndex = '1000';
-    document.body.appendChild(circle);
+    return new Promise((resolve) => {
+        const circle = document.createElement('div');
+        circle.id = 'accuracy-circle';
+        circle.style.position = 'fixed';
+        circle.style.width = '20px';
+        circle.style.height = '20px';
+        circle.style.borderRadius = '50%';
+        circle.style.backgroundColor = 'red';
+        circle.style.left = '50%';
+        circle.style.top = '50%';
+        circle.style.transform = 'translate(-50%, -50%)';
+        circle.style.zIndex = '1000';
+        document.body.appendChild(circle);
+        
+        // Give the circle time to render
+        setTimeout(resolve, 100);
+    });
 }
 
 // Function to remove accuracy calculation circle
@@ -167,14 +178,17 @@ function removeAccuracyCircle() {
 
 // Calculate accuracy after calibration
 async function calculateAccuracy() {
+    console.log('Starting accuracy calculation...'); // Debug log
+    
     var accuracyPromise = await webgazer.checkEyesInVideo(); // Check if eyes are detected
-
+    
     if (!accuracyPromise) {
-        alert("Unable to detect the users eyes! Please try again with better lighting or camera positioning.");
+        alert("Unable to detect the user's eyes! Please try again with better lighting or camera positioning.");
         return;
     }
 
     await showAccuracyCircle();
+    console.log('Accuracy circle shown, collecting gaze data...'); // Debug log
     
     var accuracyValue = await new Promise(resolve => {
         var totalTime = 0;
@@ -198,6 +212,7 @@ async function calculateAccuracy() {
                 
                 accuracySum += (1 - Math.min(distance / 200, 1));
                 totalPoints++;
+                console.log('Got prediction:', prediction.x, prediction.y, 'distance:', distance); // Debug log
             }
             
             if (totalTime >= 2000) {  // Check for 2 seconds
@@ -207,11 +222,16 @@ async function calculateAccuracy() {
         }, 50);
     });
     
+    console.log('Accuracy calculation complete:', accuracyValue); // Debug log
     removeAccuracyCircle();
     
     // Update accuracy display
     var accuracyElement = document.getElementById('accuracy-value');
     accuracyElement.textContent = accuracyValue.toFixed(1) + '%';
+    
+    // Update status
+    document.getElementById('status').innerHTML = 
+        '<p>Calibration complete! Accuracy: ' + accuracyValue.toFixed(1) + '%</p>';
     
     // Show recording controls after calibration
     document.getElementById('recording-controls').style.removeProperty('display');

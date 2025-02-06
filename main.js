@@ -296,7 +296,7 @@ async function calculateAccuracy() {
         
         if (result) {
             // User clicked confirm
-            ClearCanvas();
+            clearCanvas();
             // Show recording controls after successful calibration
             document.getElementById('recording-controls').style.removeProperty('display');
             document.getElementById('start-recording').style.removeProperty('display');
@@ -304,8 +304,7 @@ async function calculateAccuracy() {
             // User clicked Recalibrate
             document.getElementById("Accuracy").innerHTML = "<a>Not yet Calibrated</a>";
             webgazer.clearData();
-            ClearCalibration();
-            ClearCanvas();
+            clearCanvas();
             ShowCalibrationPoint();
         }
         
@@ -316,6 +315,82 @@ async function calculateAccuracy() {
         document.getElementById('accuracy-value').textContent = 'Not Calibrated';
         throw error;
     }
+}
+
+// Clear the canvas and hide calibration points
+function clearCanvas() {
+    clearMiddlePoint();
+    document.querySelectorAll('.Calibration').forEach(btn => {
+        btn.style.display = 'none';
+    });
+}
+
+// Recording variables
+let isRecording = false;
+let recordingStartTime = null;
+let gazeData = [];
+let recordingInterval = null;
+
+// Start recording gaze data
+function startRecording() {
+    if (isRecording) return;
+    
+    isRecording = true;
+    recordingStartTime = Date.now();
+    gazeData = [];
+    
+    // Update UI
+    document.getElementById('start-recording').style.display = 'none';
+    document.getElementById('stop-recording').style.removeProperty('display');
+    document.getElementById('session-id').textContent = new Date().toISOString();
+    
+    // Start recording time display
+    recordingInterval = setInterval(() => {
+        const elapsed = Date.now() - recordingStartTime;
+        const minutes = Math.floor(elapsed / 60000);
+        const seconds = Math.floor((elapsed % 60000) / 1000);
+        document.getElementById('recording-time').textContent = 
+            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }, 1000);
+    
+    // Set up gaze listener
+    webgazer.setGazeListener((data, elapsedTime) => {
+        if (data == null || !isRecording) return;
+        
+        gazeData.push({
+            timestamp: Date.now(),
+            x: data.x,
+            y: data.y,
+            elapsedTime: elapsedTime
+        });
+    });
+}
+
+// Stop recording and save data
+function stopRecording() {
+    if (!isRecording) return;
+    
+    isRecording = false;
+    clearInterval(recordingInterval);
+    
+    // Update UI
+    document.getElementById('stop-recording').style.display = 'none';
+    document.getElementById('start-recording').style.removeProperty('display');
+    
+    // Save data to CSV
+    const csvContent = "data:text/csv;charset=utf-8," + 
+        "timestamp,x,y,elapsedTime\n" +
+        gazeData.map(row => 
+            `${row.timestamp},${row.x},${row.y},${row.elapsedTime}`
+        ).join("\n");
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `gaze_data_${new Date().toISOString()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 // sleep function because java doesn't have one, sourced from http://stackoverflow.com/questions/951021/what-is-the-javascript-version-of-sleep
@@ -465,3 +540,9 @@ function onbeforeunload() {
     }
     webgazer.end();
 };
+
+// Set up event listeners for recording controls
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('start-recording').addEventListener('click', startRecording);
+    document.getElementById('stop-recording').addEventListener('click', stopRecording);
+});

@@ -224,17 +224,22 @@ async function calculateAccuracy() {
             closeModal: true
         });
 
-        // Start recording gaze data
-        webgazer.startRecording();
+        // Set up gaze listener to store points
+        webgazer.setGazeListener(function(data, elapsedTime) {
+            if (data == null) return;
+            webgazer.storePoints(data.x, data.y, elapsedTime);
+        });
         
-        // Wait for 5 seconds while recording
+        // Wait for 5 seconds to collect points
         await sleep(5000);
         
-        // Stop recording and get the points
-        webgazer.stopRecording();
-        var past50 = webgazer.getRecordedPoints();
+        // Clear the temporary gaze listener
+        webgazer.clearGazeListener();
         
-        // Calculate precision
+        // Get the stored points
+        var past50 = webgazer.getStoredPoints();
+        
+        // Calculate precision using the collected points
         var precision_measurement = calculatePrecision(past50);
         var accuracyLabel = "<a>Accuracy | "+precision_measurement+"%</a>";
         document.getElementById("Accuracy").innerHTML = accuracyLabel;
@@ -252,6 +257,9 @@ async function calculateAccuracy() {
         if (result) {
             // User clicked confirm
             ClearCanvas();
+            // Show recording controls after successful calibration
+            document.getElementById('recording-controls').style.removeProperty('display');
+            document.getElementById('start-recording').style.removeProperty('display');
         } else {
             // User clicked Recalibrate
             document.getElementById("Accuracy").innerHTML = "<a>Not yet Calibrated</a>";

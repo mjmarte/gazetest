@@ -7,6 +7,13 @@ var recordingInterval = null;
 
 // Initialize webgazer
 window.onload = async function() {
+    // Initialize variables
+    window.isRecording = false;
+    window.recordingStartTime = null;
+    window.recordingData = [];
+    window.recordingInterval = null;
+    window.sessionId = null;
+
     // Hide recording controls initially
     document.getElementById('recording-controls').style.display = 'none';
     document.getElementById('start-recording').style.display = 'none';
@@ -21,7 +28,8 @@ window.onload = async function() {
             document.getElementById('gaze-x').textContent = Math.round(data.x);
             document.getElementById('gaze-y').textContent = Math.round(data.y);
             
-            if (isRecording) {
+            if (window.isRecording) {
+                console.log('Recording data:', data.x, data.y); // Debug log
                 recordGazeData(data.x, data.y);
             }
         })
@@ -252,11 +260,13 @@ function formatDate(date) {
 
 // Record gaze data
 function recordGazeData(x, y) {
-    if (!isRecording) return;
+    console.log('recordGazeData called:', x, y, window.isRecording); // Debug log
+    if (!window.isRecording) return;
     
     const timestamp = new Date();
-    const elapsedMs = timestamp - recordingStartTime;
-    recordingData.push({
+    const elapsedMs = timestamp - window.recordingStartTime;
+    console.log('Adding data point:', timestamp, elapsedMs, x, y); // Debug log
+    window.recordingData.push({
         timestamp: formatDate(timestamp),
         elapsed_ms: elapsedMs,
         x: Math.round(x),
@@ -266,22 +276,25 @@ function recordGazeData(x, y) {
 
 // Stop recording
 function stopRecording() {
-    if (!isRecording) return;
-    isRecording = false;
-    clearInterval(recordingInterval);
+    console.log('stopRecording called, data points:', window.recordingData.length); // Debug log
+    if (!window.isRecording) return;
+    window.isRecording = false;
+    clearInterval(window.recordingInterval);
     
     // Create CSV content
     const csvContent = ['timestamp,elapsed_ms,x,y'];
-    recordingData.forEach(data => {
+    window.recordingData.forEach(data => {
         csvContent.push(`${data.timestamp},${data.elapsed_ms},${data.x},${data.y}`);
     });
+    
+    console.log('CSV content:', csvContent); // Debug log
     
     // Create and trigger download
     const blob = new Blob([csvContent.join('\n')], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.setAttribute('href', url);
-    a.setAttribute('download', `gaze_data_${sessionId}.csv`);
+    a.setAttribute('download', `gaze_data_${window.sessionId}.csv`);
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(url);
@@ -292,24 +305,25 @@ function stopRecording() {
     document.getElementById('start-recording').style.removeProperty('display');
     document.getElementById('recording-time').textContent = '00:00';
     document.getElementById('session-id').textContent = '';
-    recordingData = [];
+    window.recordingData = [];
 }
 
 // Start recording
 function startRecording() {
-    isRecording = true;
-    recordingStartTime = new Date();
-    sessionId = formatDate(recordingStartTime);
-    recordingData = [];
+    console.log('startRecording called'); // Debug log
+    window.isRecording = true;
+    window.recordingStartTime = new Date();
+    window.sessionId = formatDate(window.recordingStartTime);
+    window.recordingData = [];
     
     // Update UI
     document.getElementById('start-recording').style.display = 'none';
     document.getElementById('stop-recording').style.removeProperty('display');
-    document.getElementById('session-id').textContent = sessionId;
+    document.getElementById('session-id').textContent = window.sessionId;
     
     // Start recording time display
-    recordingInterval = setInterval(() => {
-        const elapsed = new Date() - recordingStartTime;
+    window.recordingInterval = setInterval(() => {
+        const elapsed = new Date() - window.recordingStartTime;
         const minutes = Math.floor(elapsed / 60000);
         const seconds = Math.floor((elapsed % 60000) / 1000);
         document.getElementById('recording-time').textContent = 
@@ -350,7 +364,7 @@ function Restart() {
 
 // Cleanup on window close
 function onbeforeunload() {
-    if (isRecording) {
+    if (window.isRecording) {
         stopRecording();
     }
     webgazer.end();

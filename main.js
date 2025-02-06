@@ -17,8 +17,8 @@ window.onload = async function() {
     window.sessionId = null;
 
     // Add click handlers for recording buttons
-    document.getElementById('start-recording').addEventListener('click', startRecording);
-    document.getElementById('stop-recording').addEventListener('click', stopRecording);
+    document.getElementById('start-recording').onclick = startRecording;
+    document.getElementById('stop-recording').onclick = stopRecording;
     
     // Hide recording controls initially
     document.getElementById('recording-controls').style.display = 'none';
@@ -166,90 +166,56 @@ function removeAccuracyCircle() {
 }
 
 // Calculate accuracy after calibration
-function calculateAccuracy() {
-    showAccuracyCircle();
-    
-    // Store points for 5 seconds
-    const points = {x: [], y: []};
-    let startTime = performance.now();
-    
-    function collectPoints(data) {
-        if (!data) return;
-        points.x.push(data.x);
-        points.y.push(data.y);
-        
-        // After 5 seconds, calculate accuracy
-        if (performance.now() - startTime > 5000) {
-            webgazer.clearGazeListener();
-            
-            // Calculate precision using WebGazer's method
-            const windowHeight = window.innerHeight;
-            const windowWidth = window.innerWidth;
-            
-            // Calculate the position of the point the user is staring at (center)
-            const staringPointX = windowWidth / 2;
-            const staringPointY = windowHeight / 2;
-            
-            // Calculate precision for each point
-            const precisionPercentages = [];
-            for (let i = 0; i < points.x.length; i++) {
-                // Calculate distance between each prediction and staring point
-                const xDiff = staringPointX - points.x[i];
-                const yDiff = staringPointY - points.y[i];
-                const distance = Math.sqrt((xDiff * xDiff) + (yDiff * yDiff));
-                
-                // Calculate precision percentage
-                const halfWindowHeight = windowHeight / 2;
-                let precision = 0;
-                if (distance <= halfWindowHeight && distance > -1) {
-                    precision = 100 - (distance / halfWindowHeight * 100);
-                } else if (distance > halfWindowHeight) {
-                    precision = 0;
-                } else if (distance > -1) {
-                    precision = 100;
-                }
-                precisionPercentages.push(precision);
-            }
-            
-            // Calculate average precision
-            const accuracyScore = Math.round(
-                precisionPercentages.reduce((sum, p) => sum + p, 0) / precisionPercentages.length
-            );
-            
-            // Update accuracy display
-            document.getElementById('accuracy-value').textContent = accuracyScore + '%';
-            
-            // Only show recording controls if accuracy is good enough
-            if (accuracyScore >= 50) {
-                // Show recording controls
-                document.getElementById('recording-controls').style.display = 'block';
-                document.getElementById('start-recording').style.display = 'block';
-                document.getElementById('stop-recording').style.display = 'none';
-                
-                // Update status
-                document.getElementById('status').innerHTML = 
-                    '<p>Calibration complete! Click "Start Recording" to begin.</p>';
-            } else {
-                // Hide recording controls
-                document.getElementById('recording-controls').style.display = 'none';
-                document.getElementById('start-recording').style.display = 'none';
-                document.getElementById('stop-recording').style.display = 'none';
-                
-                // Update status and restart
-                document.getElementById('status').innerHTML = 
-                    '<p>Calibration accuracy too low. Please recalibrate.</p>';
-                setTimeout(Restart, 3000);
-            }
-            removeAccuracyCircle();
-        }
+async function calculateAccuracy() {
+    var accuracyPromise = await webgazer.checkEyesInVideo(); // Check if eyes are detected
+
+    if (!accuracyPromise) {
+        alert("Unable to detect the users eyes! Please try again with better lighting or camera positioning.");
+        return;
     }
+
+    await showAccuracyCircle();
     
-    // Show status during collection
-    document.getElementById('status').innerHTML = 
-        '<p>Please stare at the center of the screen for 5 seconds...</p>';
+    var accuracyValue = await new Promise(resolve => {
+        var totalTime = 0;
+        var totalPoints = 0;
+        var accuracySum = 0;
+        
+        var checkInterval = setInterval(async function() {
+            totalTime += 50;
+            var prediction = await webgazer.getCurrentPrediction();
+            
+            if (prediction) {
+                var accuracyCircle = document.getElementById('accuracy-circle');
+                var rect = accuracyCircle.getBoundingClientRect();
+                var centerX = rect.left + rect.width / 2;
+                var centerY = rect.top + rect.height / 2;
+                
+                var distance = Math.sqrt(
+                    Math.pow(prediction.x - centerX, 2) + 
+                    Math.pow(prediction.y - centerY, 2)
+                );
+                
+                accuracySum += (1 - Math.min(distance / 200, 1));
+                totalPoints++;
+            }
+            
+            if (totalTime >= 2000) {  // Check for 2 seconds
+                clearInterval(checkInterval);
+                resolve(totalPoints > 0 ? (accuracySum / totalPoints * 100) : 0);
+            }
+        }, 50);
+    });
     
-    // Set up temporary gaze listener
-    webgazer.setGazeListener(collectPoints);
+    removeAccuracyCircle();
+    
+    // Update accuracy display
+    var accuracyElement = document.getElementById('accuracy-value');
+    accuracyElement.textContent = accuracyValue.toFixed(1) + '%';
+    
+    // Show recording controls after calibration
+    document.getElementById('recording-controls').style.removeProperty('display');
+    document.getElementById('start-recording').style.removeProperty('display');
 }
 
 // Format date to YYYY-MM-DD HH:mm:ss.SSS
@@ -326,6 +292,7 @@ function stopRecording() {
     // Reset UI
     document.getElementById('stop-recording').style.display = 'none';
     document.getElementById('start-recording').style.removeProperty('display');
+    document.getElementById('recording-controls').style.removeProperty('display');
     document.getElementById('recording-time').textContent = '00:00';
     document.getElementById('session-id').textContent = '';
     window.recordingData = [];
@@ -342,6 +309,7 @@ function startRecording() {
     // Update UI
     document.getElementById('start-recording').style.display = 'none';
     document.getElementById('stop-recording').style.removeProperty('display');
+    document.getElementById('recording-controls').style.removeProperty('display');
     document.getElementById('session-id').textContent = window.sessionId;
     
     // Start recording time display

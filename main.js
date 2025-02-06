@@ -6,44 +6,40 @@ var recordingData = [];
 var recordingInterval = null;
 
 // Initialize webgazer
-window.onload = function() {
+window.onload = async function() {
     webgazer.setRegression('ridge')
         .setTracker('TFFacemesh')
-        .setGazeListener(function(data, clock) {
+        .setGazeListener(function(data, elapsedTime) {
             if (data == null) return;
             
-            // Update gaze coordinates display
             var xprediction = data.x;
             var yprediction = data.y;
+            
             document.getElementById('gaze-x').textContent = Math.round(xprediction);
             document.getElementById('gaze-y').textContent = Math.round(yprediction);
-
-            // Record data if recording is active
-            if (isRecording && data) {
-                recordingData.push({
-                    timestamp: new Date().getTime(),
-                    x: data.x,
-                    y: data.y
-                });
+            
+            if (isRecording) {
+                recordGazeData(xprediction, yprediction);
             }
         })
         .begin();
+        
+    webgazer.showVideoPreview(true)
+        .showPredictionPoints(true)
+        .applyKalmanFilter(true);
 
-    // Set up video feed position and size
-    webgazer.params.showVideo = true;
     webgazer.params.showFaceOverlay = true;
     webgazer.params.showFaceFeedbackBox = true;
     webgazer.params.showPredictionPoints = true;
 
-    // Initialize points
+    // Initialize points with higher visibility
     document.querySelectorAll('.Calibration').forEach(point => {
+        point.style.setProperty('display', 'block', 'important');
+        point.style.setProperty('visibility', 'visible', 'important');
         point.style.backgroundColor = 'red';
-        point.style.opacity = '0.2';
+        point.style.setProperty('opacity', '0.7', 'important'); // Make points more visible
         point.onclick = () => calPointClick(point);
         CalibrationPoints[point.id] = 0;
-        if (!point.style.display || point.style.display === 'none') {
-            point.style.display = 'block';
-        }
     });
 
     // Set up recording controls
@@ -77,7 +73,7 @@ function calPointClick(node) {
     CalibrationPoints[id]++;
 
     // Update opacity based on clicks
-    var opacity = 0.2 * CalibrationPoints[id] + 0.2;
+    var opacity = 0.7 * CalibrationPoints[id] / 5;
     node.style.opacity = opacity;
 
     // Update status
@@ -230,11 +226,12 @@ function stopRecording() {
 // Restart calibration
 function Restart() {
     document.querySelectorAll('.Calibration').forEach(point => {
+        point.style.setProperty('display', 'block', 'important');
+        point.style.setProperty('visibility', 'visible', 'important');
         point.style.backgroundColor = 'red';
-        point.style.opacity = '0.2';
+        point.style.setProperty('opacity', '0.7', 'important');
         point.disabled = false;
         point.classList.remove('next-point');
-        point.style.display = 'block';
     });
     
     CalibrationPoints = {};

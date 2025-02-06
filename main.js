@@ -176,6 +176,31 @@ function updateProgress() {
     document.querySelector('.progress-bar').style.width = progressPercent + '%';
 }
 
+// Show middle point for accuracy test
+function showMiddlePoint() {
+    const canvas = document.getElementById("plotting_canvas");
+    const context = canvas.getContext('2d');
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    
+    // Clear any existing points
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw red point
+    context.beginPath();
+    context.arc(centerX, centerY, 10, 0, 2 * Math.PI);
+    context.fillStyle = "red";
+    context.fill();
+    context.stroke();
+}
+
+// Clear the canvas
+function clearMiddlePoint() {
+    const canvas = document.getElementById("plotting_canvas");
+    const context = canvas.getContext('2d');
+    context.clearRect(0, 0, canvas.width, canvas.height);
+}
+
 // Function to show accuracy calculation circle
 async function showAccuracyCircle() {
     console.log('Creating accuracy circle...'); // Debug log
@@ -215,10 +240,13 @@ async function calculateAccuracy() {
     try {
         console.log('Starting accuracy calculation...'); // Debug log
         
+        // Show the middle point
+        showMiddlePoint();
+        
         // Show modal for accuracy calculation
         await swal({
             title: "Calculating measurement",
-            text: "Please don't move your mouse & stare at the middle dot for the next 5 seconds. This will allow us to calculate the accuracy of our predictions.",
+            text: "Please don't move your mouse & stare at the red dot in the middle for the next 5 seconds. This will allow us to calculate the accuracy of our predictions.",
             closeOnEsc: false,
             allowOutsideClick: false,
             closeModal: true
@@ -239,6 +267,8 @@ async function calculateAccuracy() {
             setTimeout(() => {
                 // Restore original listener
                 webgazer.setGazeListener(originalListener);
+                // Clear the middle point
+                clearMiddlePoint();
                 resolve();
             }, 5000);
         });

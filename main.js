@@ -224,23 +224,23 @@ async function calculateAccuracy() {
             closeModal: true
         });
 
-        // Set up gaze listener to store points
-        webgazer.setGazeListener(function(data, elapsedTime) {
+        // Start recording points
+        const points = { x: [], y: [] };
+        const tempListener = function(data, elapsedTime) {
             if (data == null) return;
-            webgazer.storePoints(data.x, data.y, elapsedTime);
-        });
+            points.x.push(data.x);
+            points.y.push(data.y);
+        };
+        webgazer.setGazeListener(tempListener);
         
-        // Wait for 5 seconds to collect points
+        // Wait for 5 seconds
         await sleep(5000);
         
-        // Clear the temporary gaze listener
-        webgazer.clearGazeListener();
-        
-        // Get the stored points
-        var past50 = webgazer.getStoredPoints();
+        // Stop recording
+        webgazer.setGazeListener(null);
         
         // Calculate precision using the collected points
-        var precision_measurement = calculatePrecision(past50);
+        var precision_measurement = calculatePrecision([points.x, points.y]);
         var accuracyLabel = "<a>Accuracy | "+precision_measurement+"%</a>";
         document.getElementById("Accuracy").innerHTML = accuracyLabel;
         

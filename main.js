@@ -29,7 +29,6 @@ window.onload = async function() {
             document.getElementById('gaze-y').textContent = Math.round(data.y);
             
             if (window.isRecording) {
-                console.log('Recording data:', data.x, data.y); // Debug log
                 recordGazeData(data.x, data.y);
             }
         })
@@ -260,12 +259,10 @@ function formatDate(date) {
 
 // Record gaze data
 function recordGazeData(x, y) {
-    console.log('recordGazeData called:', x, y, window.isRecording); // Debug log
     if (!window.isRecording) return;
     
     const timestamp = new Date();
     const elapsedMs = timestamp - window.recordingStartTime;
-    console.log('Adding data point:', timestamp, elapsedMs, x, y); // Debug log
     window.recordingData.push({
         timestamp: formatDate(timestamp),
         elapsed_ms: elapsedMs,
@@ -276,7 +273,6 @@ function recordGazeData(x, y) {
 
 // Stop recording
 function stopRecording() {
-    console.log('stopRecording called, data points:', window.recordingData.length); // Debug log
     if (!window.isRecording) return;
     window.isRecording = false;
     clearInterval(window.recordingInterval);
@@ -286,8 +282,6 @@ function stopRecording() {
     window.recordingData.forEach(data => {
         csvContent.push(`${data.timestamp},${data.elapsed_ms},${data.x},${data.y}`);
     });
-    
-    console.log('CSV content:', csvContent); // Debug log
     
     // Create and trigger download
     const blob = new Blob([csvContent.join('\n')], { type: 'text/csv' });
@@ -310,7 +304,6 @@ function stopRecording() {
 
 // Start recording
 function startRecording() {
-    console.log('startRecording called'); // Debug log
     window.isRecording = true;
     window.recordingStartTime = new Date();
     window.sessionId = formatDate(window.recordingStartTime);

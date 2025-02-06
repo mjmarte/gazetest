@@ -25,9 +25,13 @@ window.onload = async function() {
             point.style.setProperty('display', 'block', 'important');
             point.style.setProperty('visibility', 'visible', 'important');
             point.style.backgroundColor = 'red';
-            point.style.setProperty('opacity', '0.7', 'important');
-            point.onclick = () => calPointClick(point);
+            point.style.setProperty('opacity', '0.2', 'important');
             CalibrationPoints[point.id] = 0;
+        });
+
+        // Add click handlers
+        document.querySelectorAll('.Calibration').forEach(point => {
+            point.addEventListener('click', () => calPointClick(point));
         });
 
         // Start with first point highlighted
@@ -83,18 +87,24 @@ function ShowCalibrationPoint() {
     document.getElementById('Pt5').style.setProperty('display', 'none');
 }
 
+/**
+ * This function handles the click event on the calibration points
+ */
 function calPointClick(node) {
     const id = node.id;
+    console.log('Clicked point:', id); // Debug log
 
     if (!CalibrationPoints[id]){ // initialises if not done
         CalibrationPoints[id]=0;
     }
     CalibrationPoints[id]++; // increments values
+    console.log('Clicks on point', id + ':', CalibrationPoints[id]); // Debug log
 
     if (CalibrationPoints[id]==5){ //only turn to yellow after 5 clicks
         node.style.setProperty('background-color', 'yellow');
         node.setAttribute('disabled', 'disabled');
         PointCalibrate++;
+        console.log('Point calibrated. Total points:', PointCalibrate); // Debug log
     }else if (CalibrationPoints[id]<5){
         //Gradually increase the opacity of calibration points when click to give some indication to user.
         var opacity = 0.2*CalibrationPoints[id]+0.2;
@@ -113,10 +123,6 @@ function calPointClick(node) {
         });
         document.getElementById('Pt5').style.removeProperty('display');
 
-        // clears the canvas
-        var canvas = document.getElementById("plotting_canvas");
-        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-
         // Calculate the accuracy
         calculateAccuracy();
     }
@@ -130,24 +136,6 @@ function Restart() {
     ClearCanvas();
     ShowCalibrationPoint();
 }
-
-/**
- * Load this function when the index page starts.
-* This function listens for button clicks on the html page
-* checks that all buttons have been clicked 5 times each, and then goes on to measuring the precision
-*/
-function docLoad() {
-    ClearCanvas();
-    
-    // click event on the calibration buttons
-    document.querySelectorAll('.Calibration').forEach((i) => {
-        i.addEventListener('click', () => {
-            calPointClick(i);
-        })
-    })
-};
-
-window.addEventListener('load', docLoad);
 
 // Cleanup on window close
 window.onbeforeunload = function() {

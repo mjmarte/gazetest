@@ -128,60 +128,86 @@ function updateProgress() {
 
 // Calculate accuracy after calibration
 function calculateAccuracy() {
-    // Get the current prediction from webgazer
-    const prediction = webgazer.getCurrentPrediction();
-    if (!prediction) {
-        document.getElementById('accuracy-value').textContent = 'Unable to calculate';
-        return;
-    }
-
-    // Get the last clicked point (which should be the calibration point)
-    const lastPoint = webgazer.getStoredPoints()[webgazer.getStoredPoints().length - 1];
-    if (!lastPoint) {
-        document.getElementById('accuracy-value').textContent = 'No calibration data';
-        return;
-    }
-
-    // Calculate Euclidean distance between prediction and actual point
-    const dx = prediction.x - lastPoint.x;
-    const dy = prediction.y - lastPoint.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-
-    // Convert distance to accuracy percentage
-    // The closer the distance, the higher the accuracy
-    // We'll consider anything over 200 pixels to be 0% accuracy
-    // and anything under 50 pixels to be 100% accuracy
-    const maxDistance = 200;
-    const minDistance = 50;
-    let accuracyScore = Math.max(0, Math.min(100,
-        100 * (1 - (distance - minDistance) / (maxDistance - minDistance))
-    ));
-    accuracyScore = Math.round(accuracyScore);
-
-    // Update accuracy display
-    document.getElementById('accuracy-value').textContent = accuracyScore + '%';
-
-    // Only show recording controls if accuracy is good enough
-    if (accuracyScore >= 50) {
-        // Show recording controls
-        document.getElementById('recording-controls').style.display = 'block';
-        document.getElementById('start-recording').style.display = 'block';
-        document.getElementById('stop-recording').style.display = 'none';
+    // Store points for 5 seconds
+    const points = {x: [], y: []};
+    let startTime = performance.now();
+    
+    function collectPoints(data) {
+        if (!data) return;
+        points.x.push(data.x);
+        points.y.push(data.y);
         
-        // Update status
-        document.getElementById('status').innerHTML = 
-            '<p>Calibration complete! Click "Start Recording" to begin.</p>';
-    } else {
-        // Hide recording controls
-        document.getElementById('recording-controls').style.display = 'none';
-        document.getElementById('start-recording').style.display = 'none';
-        document.getElementById('stop-recording').style.display = 'none';
-        
-        // Update status and restart
-        document.getElementById('status').innerHTML = 
-            '<p>Calibration accuracy too low. Please recalibrate.</p>';
-        setTimeout(Restart, 3000);
+        // After 5 seconds, calculate accuracy
+        if (performance.now() - startTime > 5000) {
+            webgazer.clearGazeListener();
+            
+            // Calculate precision using WebGazer's method
+            const windowHeight = window.innerHeight;
+            const windowWidth = window.innerWidth;
+            
+            // Calculate the position of the point the user is staring at (center)
+            const staringPointX = windowWidth / 2;
+            const staringPointY = windowHeight / 2;
+            
+            // Calculate precision for each point
+            const precisionPercentages = [];
+            for (let i = 0; i < points.x.length; i++) {
+                // Calculate distance between each prediction and staring point
+                const xDiff = staringPointX - points.x[i];
+                const yDiff = staringPointY - points.y[i];
+                const distance = Math.sqrt((xDiff * xDiff) + (yDiff * yDiff));
+                
+                // Calculate precision percentage
+                const halfWindowHeight = windowHeight / 2;
+                let precision = 0;
+                if (distance <= halfWindowHeight && distance > -1) {
+                    precision = 100 - (distance / halfWindowHeight * 100);
+                } else if (distance > halfWindowHeight) {
+                    precision = 0;
+                } else if (distance > -1) {
+                    precision = 100;
+                }
+                precisionPercentages.push(precision);
+            }
+            
+            // Calculate average precision
+            const accuracyScore = Math.round(
+                precisionPercentages.reduce((sum, p) => sum + p, 0) / precisionPercentages.length
+            );
+            
+            // Update accuracy display
+            document.getElementById('accuracy-value').textContent = accuracyScore + '%';
+            
+            // Only show recording controls if accuracy is good enough
+            if (accuracyScore >= 50) {
+                // Show recording controls
+                document.getElementById('recording-controls').style.display = 'block';
+                document.getElementById('start-recording').style.display = 'block';
+                document.getElementById('stop-recording').style.display = 'none';
+                
+                // Update status
+                document.getElementById('status').innerHTML = 
+                    '<p>Calibration complete! Click "Start Recording" to begin.</p>';
+            } else {
+                // Hide recording controls
+                document.getElementById('recording-controls').style.display = 'none';
+                document.getElementById('start-recording').style.display = 'none';
+                document.getElementById('stop-recording').style.display = 'none';
+                
+                // Update status and restart
+                document.getElementById('status').innerHTML = 
+                    '<p>Calibration accuracy too low. Please recalibrate.</p>';
+                setTimeout(Restart, 3000);
+            }
+        }
     }
+    
+    // Show status during collection
+    document.getElementById('status').innerHTML = 
+        '<p>Please stare at the center of the screen for 5 seconds...</p>';
+    
+    // Set up temporary gaze listener
+    webgazer.setGazeListener(collectPoints);
 }
 
 // Format date to YYYY-MM-DD HH:mm:ss.SSS

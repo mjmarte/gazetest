@@ -115,3 +115,133 @@
     padding: 10px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+}
+
+/* Calibration points */
+.calibrationDiv {
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: stretch;
+    padding: 50px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.Calibration {
+    width: 20px;
+    height: 20px;
+    background-color: red;
+    border-radius: 50%;
+    border: none;
+    pointer-events: auto;
+    opacity: 0.2;
+    position: relative;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.Calibration.next-point {
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+/* Navigation bar */
+#webgazerNavbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 2;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 10px 20px;
+}
+
+/* Status messages */
+.status-msg {
+    position: fixed;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 10px 20px;
+    border-radius: 5px;
+    z-index: 2;
+}
+
+.next-point-text {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 10px 20px;
+    border-radius: 5px;
+    z-index: 2;
+}
+
+/* Recording controls */
+#recording-controls {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 10px;
+    border-radius: 5px;
+    z-index: 2;
+}
+
+#recording-info {
+    margin-top: 10px;
+    font-size: 0.9em;
+}
+
+#recording-info span {
+    display: block;
+    margin: 5px 0;
+}
+
+/* Buttons */
+button {
+    padding: 8px 16px;
+    margin: 5px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+#stop-recording {
+    background-color: #dc3545;
+}
+
+#stop-recording:hover {
+    background-color: #c82333;
+}

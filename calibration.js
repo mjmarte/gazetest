@@ -1,6 +1,51 @@
 var PointCalibrate = 0;
 var CalibrationPoints = {};
 
+// Initialize webgazer
+window.onload = async function() {
+    try {
+        // Initialize webgazer
+        await webgazer.setRegression('ridge')
+            .setTracker('TFFacemesh')
+            .begin();
+            
+        // Wait for WebGazer to fully initialize
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        webgazer.showVideoPreview(true)
+            .showPredictionPoints(true)
+            .applyKalmanFilter(true);
+
+        webgazer.params.showFaceOverlay = true;
+        webgazer.params.showFaceFeedbackBox = true;
+        webgazer.params.showPredictionPoints = true;
+
+        // Set up calibration points
+        document.querySelectorAll('.Calibration').forEach(point => {
+            point.style.setProperty('display', 'block', 'important');
+            point.style.setProperty('visibility', 'visible', 'important');
+            point.style.backgroundColor = 'red';
+            point.style.setProperty('opacity', '0.7', 'important');
+            point.onclick = () => calPointClick(point);
+            CalibrationPoints[point.id] = 0;
+        });
+
+        // Start with first point highlighted
+        document.getElementById('Pt1').classList.add('next-point');
+        document.querySelector('.next-point-text').textContent = 'Start with point 1';
+
+        // Hide recording controls initially
+        document.getElementById('recording-controls').style.display = 'none';
+        document.getElementById('start-recording').style.display = 'none';
+        document.getElementById('stop-recording').style.display = 'none';
+
+    } catch (error) {
+        console.error('Error initializing WebGazer:', error);
+        document.getElementById('status').innerHTML = 
+            '<p>Error initializing eye tracking. Please refresh the page and try again.</p>';
+    }
+};
+
 /**
  * Clear the canvas and the calibration button.
  */
@@ -103,3 +148,8 @@ function docLoad() {
 };
 
 window.addEventListener('load', docLoad);
+
+// Cleanup on window close
+window.onbeforeunload = function() {
+    webgazer.end();
+};

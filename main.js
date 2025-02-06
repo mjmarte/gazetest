@@ -224,20 +224,30 @@ async function calculateAccuracy() {
             closeModal: true
         });
 
-        // Start recording points
+        // Collect points for 5 seconds
         const points = { x: [], y: [] };
-        const tempListener = function(data, elapsedTime) {
-            if (data == null) return;
-            points.x.push(data.x);
-            points.y.push(data.y);
-        };
-        webgazer.setGazeListener(tempListener);
+        const originalListener = webgazer.getGazeListener();
         
-        // Wait for 5 seconds
-        await sleep(5000);
+        await new Promise((resolve) => {
+            webgazer.setGazeListener((data, elapsedTime) => {
+                if (data == null) return;
+                points.x.push(data.x);
+                points.y.push(data.y);
+                if (originalListener) originalListener(data, elapsedTime);
+            });
+            
+            setTimeout(() => {
+                // Restore original listener
+                webgazer.setGazeListener(originalListener);
+                resolve();
+            }, 5000);
+        });
         
-        // Stop recording
-        webgazer.setGazeListener(null);
+        // Take only the last 50 points if we have more
+        if (points.x.length > 50) {
+            points.x = points.x.slice(-50);
+            points.y = points.y.slice(-50);
+        }
         
         // Calculate precision using the collected points
         var precision_measurement = calculatePrecision([points.x, points.y]);

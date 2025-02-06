@@ -215,74 +215,64 @@ async function calculateAccuracy() {
     try {
         console.log('Starting accuracy calculation...'); // Debug log
         
-        // Show accuracy circle
-        console.log('Showing accuracy circle...'); // Debug log
-        await showAccuracyCircle();
-        console.log('Accuracy circle shown, collecting gaze data...'); // Debug log
-        
+        // Show modal for accuracy calculation
+        await swal({
+            title: "Calculating measurement",
+            text: "Please don't move your mouse & stare at the middle dot for the next 5 seconds. This will allow us to calculate the accuracy of our predictions.",
+            closeOnEsc: false,
+            allowOutsideClick: false,
+            closeModal: true
+        });
+
         // Start recording gaze data
         webgazer.startRecording();
         
-        var accuracyValue = await new Promise((resolve, reject) => {
-            setTimeout(async () => {
-                try {
-                    // Stop recording and get the points
-                    webgazer.stopRecording();
-                    var predictions = webgazer.getRecordedPoints();
-                    
-                    if (!predictions || predictions.length === 0) {
-                        throw new Error('No gaze predictions collected');
-                    }
-                    
-                    // Calculate accuracy based on distance from center
-                    var accuracyCircle = document.getElementById('accuracy-circle');
-                    if (!accuracyCircle) {
-                        throw new Error('Accuracy circle not found');
-                    }
-                    
-                    var rect = accuracyCircle.getBoundingClientRect();
-                    var centerX = rect.left + rect.width / 2;
-                    var centerY = rect.top + rect.height / 2;
-                    
-                    var totalAccuracy = 0;
-                    predictions.forEach(pred => {
-                        var distance = Math.sqrt(
-                            Math.pow(pred.x - centerX, 2) + 
-                            Math.pow(pred.y - centerY, 2)
-                        );
-                        totalAccuracy += (1 - Math.min(distance / 200, 1));
-                    });
-                    
-                    resolve((totalAccuracy / predictions.length) * 100);
-                } catch (error) {
-                    reject(error);
-                }
-            }, 2000); // Record for 2 seconds
+        // Wait for 5 seconds while recording
+        await sleep(5000);
+        
+        // Stop recording and get the points
+        webgazer.stopRecording();
+        var past50 = webgazer.getRecordedPoints();
+        
+        // Calculate precision
+        var precision_measurement = calculatePrecision(past50);
+        var accuracyLabel = "<a>Accuracy | "+precision_measurement+"%</a>";
+        document.getElementById("Accuracy").innerHTML = accuracyLabel;
+        
+        // Show the results
+        const result = await swal({
+            title: "Your accuracy measure is " + precision_measurement + "%",
+            allowOutsideClick: false,
+            buttons: {
+                cancel: "Recalibrate",
+                confirm: true,
+            }
         });
         
-        console.log('Accuracy calculation complete:', accuracyValue); // Debug log
-        removeAccuracyCircle();
-        
-        // Update accuracy display
-        var accuracyElement = document.getElementById('accuracy-value');
-        accuracyElement.textContent = accuracyValue.toFixed(1) + '%';
-        
-        // Update status
-        document.getElementById('status').innerHTML = 
-            '<p>Calibration complete! Accuracy: ' + accuracyValue.toFixed(1) + '%</p>';
-        
-        // Show recording controls after calibration
-        document.getElementById('recording-controls').style.removeProperty('display');
-        document.getElementById('start-recording').style.removeProperty('display');
+        if (result) {
+            // User clicked confirm
+            ClearCanvas();
+        } else {
+            // User clicked Recalibrate
+            document.getElementById("Accuracy").innerHTML = "<a>Not yet Calibrated</a>";
+            webgazer.clearData();
+            ClearCalibration();
+            ClearCanvas();
+            ShowCalibrationPoint();
+        }
         
     } catch (error) {
-        console.error('Error in calculateAccuracy:', error); // Debug log
+        console.error('Error in calculateAccuracy:', error);
         document.getElementById('status').innerHTML = 
             '<p>Error during accuracy calculation: ' + error.message + '. Please try again.</p>';
         document.getElementById('accuracy-value').textContent = 'Not Calibrated';
-        removeAccuracyCircle();
         throw error;
     }
+}
+
+// sleep function because java doesn't have one, sourced from http://stackoverflow.com/questions/951021/what-is-the-javascript-version-of-sleep
+function sleep (time) {
+  return new Promise((resolve) => setTimeout(resolve, time));
 }
 
 // Format date to YYYY-MM-DD HH:mm:ss.SSS

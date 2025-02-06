@@ -128,63 +128,60 @@ function updateProgress() {
 
 // Calculate accuracy after calibration
 function calculateAccuracy() {
-    // Store points for 100ms to get a quick sample
-    const points = [];
-    let startTime = performance.now();
-    
-    function collectPoints(data) {
-        if (!data) return;
-        points.push({x: data.x, y: data.y});
-        
-        // After 100ms, calculate accuracy
-        if (performance.now() - startTime > 100) {
-            webgazer.clearGazeListener();
-            
-            // Calculate average position
-            const avgX = points.reduce((sum, p) => sum + p.x, 0) / points.length;
-            const avgY = points.reduce((sum, p) => sum + p.y, 0) / points.length;
-            
-            // Calculate standard deviation
-            const variance = points.reduce((sum, p) => {
-                const dx = p.x - avgX;
-                const dy = p.y - avgY;
-                return sum + Math.sqrt(dx * dx + dy * dy);
-            }, 0) / points.length;
-            
-            // Convert to a percentage (lower variance = higher accuracy)
-            // Cap at 100, floor at 0
-            const accuracyScore = Math.min(100, Math.max(0, 
-                Math.round(100 - (variance / 5))  // Divide by 5 to scale the variance
-            ));
-            
-            document.getElementById('accuracy-value').textContent = accuracyScore + '%';
-            
-            // Only show recording controls if accuracy is good enough
-            if (accuracyScore >= 50) {
-                // Show recording controls
-                document.getElementById('recording-controls').style.display = 'block';
-                document.getElementById('start-recording').style.display = 'block';
-                document.getElementById('stop-recording').style.display = 'none';
-                
-                // Update status
-                document.getElementById('status').innerHTML = 
-                    '<p>Calibration complete! Click "Start Recording" to begin.</p>';
-            } else {
-                // Hide recording controls
-                document.getElementById('recording-controls').style.display = 'none';
-                document.getElementById('start-recording').style.display = 'none';
-                document.getElementById('stop-recording').style.display = 'none';
-                
-                // Update status and restart
-                document.getElementById('status').innerHTML = 
-                    '<p>Calibration accuracy too low. Please recalibrate.</p>';
-                setTimeout(Restart, 3000);
-            }
-        }
+    // Get the current prediction from webgazer
+    const prediction = webgazer.getCurrentPrediction();
+    if (!prediction) {
+        document.getElementById('accuracy-value').textContent = 'Unable to calculate';
+        return;
     }
-    
-    // Set up temporary gaze listener
-    webgazer.setGazeListener(collectPoints);
+
+    // Get the last clicked point (which should be the calibration point)
+    const lastPoint = webgazer.getStoredPoints()[webgazer.getStoredPoints().length - 1];
+    if (!lastPoint) {
+        document.getElementById('accuracy-value').textContent = 'No calibration data';
+        return;
+    }
+
+    // Calculate Euclidean distance between prediction and actual point
+    const dx = prediction.x - lastPoint.x;
+    const dy = prediction.y - lastPoint.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // Convert distance to accuracy percentage
+    // The closer the distance, the higher the accuracy
+    // We'll consider anything over 200 pixels to be 0% accuracy
+    // and anything under 50 pixels to be 100% accuracy
+    const maxDistance = 200;
+    const minDistance = 50;
+    let accuracyScore = Math.max(0, Math.min(100,
+        100 * (1 - (distance - minDistance) / (maxDistance - minDistance))
+    ));
+    accuracyScore = Math.round(accuracyScore);
+
+    // Update accuracy display
+    document.getElementById('accuracy-value').textContent = accuracyScore + '%';
+
+    // Only show recording controls if accuracy is good enough
+    if (accuracyScore >= 50) {
+        // Show recording controls
+        document.getElementById('recording-controls').style.display = 'block';
+        document.getElementById('start-recording').style.display = 'block';
+        document.getElementById('stop-recording').style.display = 'none';
+        
+        // Update status
+        document.getElementById('status').innerHTML = 
+            '<p>Calibration complete! Click "Start Recording" to begin.</p>';
+    } else {
+        // Hide recording controls
+        document.getElementById('recording-controls').style.display = 'none';
+        document.getElementById('start-recording').style.display = 'none';
+        document.getElementById('stop-recording').style.display = 'none';
+        
+        // Update status and restart
+        document.getElementById('status').innerHTML = 
+            '<p>Calibration accuracy too low. Please recalibrate.</p>';
+        setTimeout(Restart, 3000);
+    }
 }
 
 // Format date to YYYY-MM-DD HH:mm:ss.SSS

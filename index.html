@@ -26,6 +26,7 @@
     <!-- Status text -->
     <div id="status">
         <p>Click on each point 5 times to calibrate</p>
+        <p class="next-point-text"></p>
     </div>
 
     <!-- Progress bar -->
@@ -36,6 +37,19 @@
     <!-- Accuracy display -->
     <div id="accuracy">
         <p>Accuracy: <span id="accuracy-value">Not Calibrated</span></p>
+    </div>
+
+    <!-- Recording controls -->
+    <div id="recording-controls" style="display: none;">
+        <button id="start-recording" class="btn btn-success">Start Recording</button>
+        <button id="stop-recording" class="btn btn-danger" style="display: none;">Stop Recording</button>
+        <p>Session: <span id="session-id">None</span></p>
+        <p>Recording Time: <span id="recording-time">00:00</span></p>
+    </div>
+
+    <!-- Stimulus area -->
+    <div id="stimulus-area">
+        <!-- Stimuli will be loaded here -->
     </div>
 
     <!-- Gaze coordinates -->

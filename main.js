@@ -1,5 +1,9 @@
 var PointCalibrate = 0;
 var CalibrationPoints = {};
+var isRecording = false;
+var recordingStartTime = null;
+var recordingData = [];
+var recordingInterval = null;
 
 // Initialize webgazer
 window.onload = function() {
@@ -13,6 +17,15 @@ window.onload = function() {
             var yprediction = data.y;
             document.getElementById('gaze-x').textContent = Math.round(xprediction);
             document.getElementById('gaze-y').textContent = Math.round(yprediction);
+
+            // Record data if recording is active
+            if (isRecording && data) {
+                recordingData.push({
+                    timestamp: new Date().getTime(),
+                    x: data.x,
+                    y: data.y
+                });
+            }
         })
         .begin();
 
@@ -31,13 +44,29 @@ window.onload = function() {
 
     // Initially hide the middle point
     document.getElementById('Pt5').style.display = 'none';
+
+    // Set up recording controls
+    document.getElementById('start-recording').onclick = startRecording;
+    document.getElementById('stop-recording').onclick = stopRecording;
 };
+
+// Find next uncalibrated point
+function findNextPoint() {
+    for (let i = 1; i <= 9; i++) {
+        if (i === 5 && PointCalibrate < 8) continue; // Skip middle point until others are done
+        const point = document.getElementById('Pt' + i);
+        if (!point.disabled) {
+            return point;
+        }
+    }
+    return null;
+}
 
 // Handle calibration point click
 function calPointClick(node) {
     const id = node.id;
-    console.log('Clicked point:', id); // Debug log
-
+    console.log('Clicked point:', id);
+    
     if (!CalibrationPoints[id]) {
         CalibrationPoints[id] = 0;
     }
@@ -48,20 +77,34 @@ function calPointClick(node) {
     node.style.opacity = opacity;
 
     // Update status
+    const remainingClicks = 5 - CalibrationPoints[id];
     document.getElementById('status').innerHTML = 
         '<p>Point ' + id.replace('Pt', '') + ': ' + 
-        (5 - CalibrationPoints[id]) + ' clicks remaining</p>';
+        remainingClicks + ' clicks remaining</p>';
 
     // If point is complete
     if (CalibrationPoints[id] == 5) {
         node.style.backgroundColor = 'yellow';
         node.disabled = true;
         PointCalibrate++;
+        
+        // Find and highlight next point
+        const nextPoint = findNextPoint();
+        if (nextPoint) {
+            document.querySelectorAll('.Calibration').forEach(p => p.classList.remove('next-point'));
+            nextPoint.classList.add('next-point');
+            document.querySelector('.next-point-text').textContent = 
+                'Move to point ' + nextPoint.id.replace('Pt', '');
+        }
     }
 
     // Show middle point after 8 points are done
     if (PointCalibrate == 8) {
-        document.getElementById('Pt5').style.display = 'block';
+        const middlePoint = document.getElementById('Pt5');
+        middlePoint.style.display = 'block';
+        middlePoint.classList.add('next-point');
+        document.querySelector('.next-point-text').textContent = 
+            'Now click the center point';
     }
 
     // Update progress bar
@@ -122,8 +165,8 @@ function calculateAccuracy() {
         });
         
         const precision = 100 - (variance / points.length / 10);
-        document.getElementById('accuracy-value').textContent = 
-            Math.round(precision) + '%';
+        const accuracyScore = Math.round(precision);
+        document.getElementById('accuracy-value').textContent = accuracyScore + '%';
         
         // Hide calibration points except middle one
         document.querySelectorAll('.Calibration').forEach(point => {
@@ -131,7 +174,62 @@ function calculateAccuracy() {
                 point.style.display = 'none';
             }
         });
+
+        // Show recording controls if accuracy is good enough
+        if (accuracyScore >= 50) {
+            document.getElementById('recording-controls').style.display = 'block';
+            document.getElementById('status').innerHTML = 
+                '<p>Calibration complete! You can now start recording.</p>';
+        } else {
+            document.getElementById('status').innerHTML = 
+                '<p>Calibration accuracy too low. Please recalibrate.</p>';
+            setTimeout(Restart, 3000);
+        }
     }, 5000);
+}
+
+// Start recording
+function startRecording() {
+    isRecording = true;
+    recordingStartTime = new Date().getTime();
+    recordingData = [];
+    document.getElementById('start-recording').style.display = 'none';
+    document.getElementById('stop-recording').style.display = 'inline-block';
+    document.getElementById('session-id').textContent = new Date().toISOString();
+    
+    // Update recording time
+    recordingInterval = setInterval(() => {
+        const elapsed = new Date().getTime() - recordingStartTime;
+        const seconds = Math.floor(elapsed / 1000);
+        const minutes = Math.floor(seconds / 60);
+        document.getElementById('recording-time').textContent = 
+            `${minutes.toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
+    }, 1000);
+}
+
+// Stop recording
+function stopRecording() {
+    isRecording = false;
+    clearInterval(recordingInterval);
+    document.getElementById('start-recording').style.display = 'inline-block';
+    document.getElementById('stop-recording').style.display = 'none';
+    
+    // Prepare CSV content
+    const csvContent = ['timestamp,x,y'];
+    recordingData.forEach(point => {
+        csvContent.push(`${point.timestamp},${point.x},${point.y}`);
+    });
+    
+    // Create and download file
+    const blob = new Blob([csvContent.join('\n')], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('href', url);
+    a.setAttribute('download', `gaze_data_${new Date().toISOString()}.csv`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
 }
 
 // Restart calibration
@@ -140,6 +238,7 @@ function Restart() {
         point.style.backgroundColor = 'red';
         point.style.opacity = '0.2';
         point.disabled = false;
+        point.classList.remove('next-point');
         if (point.id !== 'Pt5') {
             point.style.display = 'block';
         }
@@ -153,9 +252,18 @@ function Restart() {
     document.getElementById('status').innerHTML = 
         '<p>Click on each point 5 times to calibrate</p>';
     document.querySelector('.progress-bar').style.width = '0%';
+    document.getElementById('recording-controls').style.display = 'none';
+    document.querySelector('.next-point-text').textContent = '';
+    
+    // Highlight first point
+    document.getElementById('Pt1').classList.add('next-point');
+    document.querySelector('.next-point-text').textContent = 'Start with point 1';
 }
 
 // Cleanup on window close
 window.onbeforeunload = function() {
+    if (isRecording) {
+        stopRecording();
+    }
     webgazer.end();
 };

@@ -4,8 +4,8 @@
     position: fixed !important;
     top: 0px !important;
     left: 0px !important;
-    width: 320px !important;
-    height: 240px !important;
+    width: 160px !important;
+    height: 120px !important;
     z-index: 1;
 }
 
@@ -19,17 +19,18 @@
     position: fixed;
     opacity: 0.2;
     z-index: 999;
+    cursor: pointer;
 }
 
-/* Point positions */
-#Pt1 { left: 340px; top: 20px; }
-#Pt2 { right: 340px; top: 20px; }
+/* Point positions - moved left to account for smaller video */
+#Pt1 { left: 200px; top: 20px; }
+#Pt2 { left: 50%; top: 20px; }
 #Pt3 { right: 20px; top: 20px; }
-#Pt4 { left: 340px; top: 50%; }
-#Pt5 { right: 50%; top: 50%; }
+#Pt4 { left: 200px; top: 50%; }
+#Pt5 { left: 50%; top: 50%; }
 #Pt6 { right: 20px; top: 50%; }
-#Pt7 { left: 340px; bottom: 20px; }
-#Pt8 { right: 340px; bottom: 20px; }
+#Pt7 { left: 200px; bottom: 20px; }
+#Pt8 { left: 50%; bottom: 20px; }
 #Pt9 { right: 20px; bottom: 20px; }
 
 /* Status text */
@@ -42,6 +43,7 @@
     background: rgba(255, 255, 255, 0.8);
     padding: 10px;
     border-radius: 5px;
+    text-align: center;
 }
 
 /* Progress bar */

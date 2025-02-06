@@ -3,13 +3,60 @@ let isRecording = false;
 let recordingStartTime = null;
 let gazeData = [];
 let recordingInterval = null;
+let frameRequestId = null;
+
+// Initialize WebGazer with proper video settings
+window.onload = async function() {
+    try {
+        await webgazer.setRegression('ridge')
+            .setTracker('TFFacemesh')
+            .setGazeListener((data, timestamp) => {
+                if (data == null) return;
+                
+                // Update gaze point display
+                document.getElementById('gaze-x').textContent = data.x.toFixed(2);
+                document.getElementById('gaze-y').textContent = data.y.toFixed(2);
+            })
+            .begin();
+
+        // Set video feed size and position
+        const videoElement = document.getElementById('webgazerVideoFeed');
+        if (videoElement) {
+            videoElement.style.display = 'block';
+            videoElement.style.position = 'fixed';
+            videoElement.style.top = '0px';
+            videoElement.style.left = '0px';
+            videoElement.style.width = '320px';
+            videoElement.style.height = '240px';
+            // Flip the video horizontally to mirror view
+            videoElement.style.transform = 'scaleX(-1)';
+        }
+
+        // Set face overlay position
+        const faceOverlay = document.getElementById('webgazerFaceOverlay');
+        if (faceOverlay) {
+            faceOverlay.style.position = 'fixed';
+            faceOverlay.style.top = '0px';
+            faceOverlay.style.left = '0px';
+            faceOverlay.style.width = '320px';
+            faceOverlay.style.height = '240px';
+        }
+
+        // Show recording controls after webgazer is ready
+        document.getElementById('recording-controls').style.display = 'block';
+        
+    } catch (err) {
+        console.error('Error initializing WebGazer:', err);
+        alert('Failed to initialize eye tracking. Please make sure your camera is connected and you have granted permission.');
+    }
+};
 
 // Start recording gaze data
 function startRecording() {
     if (isRecording) return;
     
     isRecording = true;
-    recordingStartTime = Date.now();
+    recordingStartTime = performance.now();
     gazeData = [];
     
     // Update UI
@@ -18,25 +65,36 @@ function startRecording() {
     document.getElementById('session-id').textContent = new Date().toISOString();
     
     // Start recording time display
-    recordingInterval = setInterval(() => {
-        const elapsed = Date.now() - recordingStartTime;
-        const minutes = Math.floor(elapsed / 60000);
-        const seconds = Math.floor((elapsed % 60000) / 1000);
-        document.getElementById('recording-time').textContent = 
-            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    }, 1000);
+    recordingInterval = setInterval(updateRecordingTime, 1000);
     
-    // Set up gaze listener
-    webgazer.setGazeListener((data, elapsedTime) => {
-        if (data == null || !isRecording) return;
-        
+    // Start high-precision recording loop (targeting 60Hz)
+    requestAnimationFrame(recordGazeData);
+}
+
+// Record gaze data at animation frame rate (approximately 60Hz)
+function recordGazeData(timestamp) {
+    if (!isRecording) return;
+    
+    const currentGaze = webgazer.getCurrentPrediction();
+    if (currentGaze) {
         gazeData.push({
-            timestamp: Date.now(),
-            x: data.x,
-            y: data.y,
-            elapsedTime: elapsedTime
+            timestamp: performance.now(),
+            x: currentGaze.x,
+            y: currentGaze.y,
+            elapsedTime: performance.now() - recordingStartTime
         });
-    });
+    }
+    
+    frameRequestId = requestAnimationFrame(recordGazeData);
+}
+
+// Update recording time display
+function updateRecordingTime() {
+    const elapsed = Date.now() - recordingStartTime;
+    const minutes = Math.floor(elapsed / 60000);
+    const seconds = Math.floor((elapsed % 60000) / 1000);
+    document.getElementById('recording-time').textContent = 
+        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
 // Stop recording and save data
@@ -45,10 +103,16 @@ function stopRecording() {
     
     isRecording = false;
     clearInterval(recordingInterval);
+    cancelAnimationFrame(frameRequestId);
     
     // Update UI
     document.getElementById('stop-recording').style.display = 'none';
     document.getElementById('start-recording').style.removeProperty('display');
+    
+    // Calculate sampling rate statistics
+    const duration = (gazeData[gazeData.length - 1].timestamp - gazeData[0].timestamp) / 1000; // in seconds
+    const samplingRate = gazeData.length / duration;
+    console.log(`Recording finished. Average sampling rate: ${samplingRate.toFixed(2)} Hz`);
     
     // Save data to CSV
     const csvContent = "data:text/csv;charset=utf-8," + 

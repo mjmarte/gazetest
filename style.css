@@ -2,11 +2,36 @@
 #webgazerVideoContainer {
     display: block !important;
     position: fixed !important;
-    top: 50px !important;
+    top: 0 !important;
     left: 0 !important;
     width: 320px !important;
     height: 240px !important;
     z-index: 1 !important;
+}
+
+#webgazerVideoFeed {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 320px !important;
+    height: 240px !important;
+    transform: scaleX(-1) !important;
+}
+
+#webgazerFaceOverlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 320px !important;
+    height: 240px !important;
+}
+
+#webgazerFaceFeedbackBox {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 320px !important;
+    height: 240px !important;
 }
 
 /* Calibration points */
@@ -256,18 +281,9 @@ body {
 }
 
 /* WebGazer video feed */
-#webgazerVideoFeed {
-    position: fixed !important;
-    top: 50px !important;
-    left: 0 !important;
-    width: 320px !important;
-    height: 240px !important;
-    z-index: 1 !important;
-}
-
 #webgazerVideoCanvas {
     position: fixed !important;
-    top: 50px !important;
+    top: 0 !important;
     left: 0 !important;
     width: 320px !important;
     height: 240px !important;
@@ -276,7 +292,7 @@ body {
 
 #webgazerFaceOverlay {
     position: fixed !important;
-    top: 50px !important;
+    top: 0 !important;
     left: 0 !important;
     width: 320px !important;
     height: 240px !important;
@@ -284,7 +300,7 @@ body {
 }
 
 #webgazerFaceFeedbackBox {
-    top: 50px !important;
+    top: 0 !important;
     left: 320px !important;
 }
 

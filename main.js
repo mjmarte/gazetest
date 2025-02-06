@@ -12,9 +12,19 @@ window.onload = async function() {
     document.getElementById('start-recording').style.display = 'none';
     document.getElementById('stop-recording').style.display = 'none';
 
-    // Initialize webgazer without a gaze listener (we'll add it when needed)
-    webgazer.setRegression('ridge')
+    // Initialize webgazer with gaze listener
+    await webgazer.setRegression('ridge')
         .setTracker('TFFacemesh')
+        .setGazeListener(function(data, elapsedTime) {
+            if (data == null) return;
+            
+            document.getElementById('gaze-x').textContent = Math.round(data.x);
+            document.getElementById('gaze-y').textContent = Math.round(data.y);
+            
+            if (isRecording) {
+                recordGazeData(data.x, data.y);
+            }
+        })
         .begin();
         
     webgazer.showVideoPreview(true)
@@ -219,32 +229,6 @@ function startRecording() {
     recordingStartTime = new Date();
     sessionId = formatDate(recordingStartTime);
     recordingData = [];
-    
-    // Set up high frequency gaze collection using requestAnimationFrame
-    let lastFrameTime = performance.now();
-    const targetInterval = 1000 / 60; // Target 60Hz
-    
-    function collectGaze(currentTime) {
-        if (!isRecording) return;
-        
-        // Only collect if enough time has passed (targeting 60Hz)
-        if (currentTime - lastFrameTime >= targetInterval) {
-            const prediction = webgazer.getCurrentPrediction();
-            if (prediction) {
-                document.getElementById('gaze-x').textContent = Math.round(prediction.x);
-                document.getElementById('gaze-y').textContent = Math.round(prediction.y);
-                
-                recordGazeData(prediction.x, prediction.y);
-            }
-            lastFrameTime = currentTime;
-        }
-        
-        // Request next frame
-        requestAnimationFrame(collectGaze);
-    }
-    
-    // Start the collection loop
-    requestAnimationFrame(collectGaze);
     
     // Update UI
     document.getElementById('start-recording').style.display = 'none';

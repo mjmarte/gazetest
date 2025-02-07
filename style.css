@@ -17,15 +17,15 @@ button {
     position: fixed !important;
     top: 0px !important;
     left: 0px !important;
-    width: 320px !important;
-    height: 240px !important;
+    width: 272px !important;
+    height: 204px !important;
     z-index: 1;
 }
 
 /* Navbar styling */
 #webgazerNavbar {
-    left: 320px;
-    width: calc(100% - 320px);
+    left: 272px;
+    width: calc(100% - 272px);
     z-index: 0;
     box-shadow: 0px 3px 5px #ddd;
     border:0px;
@@ -83,12 +83,12 @@ li {
 /* Calibration point position */
 #Pt1{
     top: 70px;
-    left:340px;
+    left:292px;
 }
 #Pt2{
     top: 70px;
     left:50vw;
-    margin-left: 340;
+    margin-left: 292;
 }
 #Pt3{
     top: 70px;
@@ -124,8 +124,8 @@ li {
     position: fixed !important;
     top: 0;
     left: 0;
-    width: 320px !important;
-    height: 240px !important;
+    width: 272px !important;
+    height: 204px !important;
     z-index: 1000;
 }
 
@@ -139,8 +139,8 @@ li {
     position: fixed !important;
     width: 144px !important;
     height: 144px !important;
-    top: 48px !important;  /* Centered vertically: (240px - 144px) / 2 = 48px */
-    left: 88px !important; /* Centered horizontally: (320px - 144px) / 2 = 88px */
+    top: 24px !important;  /* Moved up by 24px (10% of original video height) */
+    left: 64px !important; /* Centered horizontally: (272px - 144px) / 2 = 64px */
     z-index: 1000;
 }
 
@@ -148,8 +148,8 @@ li {
 #webgazerVideoContainer > div {
     width: 144px !important;
     height: 144px !important;
-    top: 48px !important;
-    left: 88px !important;
+    top: 24px !important;
+    left: 64px !important;
 }
 
 /* Remove any conflicting styles */

@@ -22,11 +22,35 @@
             /* Video feed styling */
             #webgazerVideoContainer {
                 position: fixed !important;
-                top: 0 !important;
-                left: 0 !important;
-                width: 320px !important;
-                height: 240px !important;
+                top: 0px !important;
+                left: 0px !important;
+                width: 200px !important;
+                height: 150px !important;
                 z-index: 2 !important;
+            }
+
+            #webgazerVideoFeed {
+                position: fixed !important;
+                top: 0px !important;
+                left: 0px !important;
+                width: 200px !important;
+                height: 150px !important;
+                transform: scaleX(-1) !important;
+            }
+
+            #webgazerFaceOverlay {
+                position: fixed !important;
+                top: 0px !important;
+                left: 0px !important;
+                width: 200px !important;
+                height: 150px !important;
+            }
+
+            #webgazerFaceFeedbackBox {
+                top: 0px !important;
+                left: 0px !important;
+                width: 200px !important;
+                height: 150px !important;
             }
 
             /* Calibration points */
@@ -163,11 +187,9 @@
         <script src="webgazer.js"></script>
         <script>
             window.onload = async function() {
-                // Smaller video size
-                var width = 200;  
-                var height = 150;  
-                var topDist = '0px';
-                var leftDist = '0px';
+                // Video dimensions
+                const VIDEO_WIDTH = 200;
+                const VIDEO_HEIGHT = 150;
                 
                 // Store click coordinates for accuracy test
                 var xPast50 = new Array(50);
@@ -195,13 +217,14 @@
 
                 // Initialize webgazer with proper error handling
                 try {
-                    // First set up the video feed
+                    // Configure WebGazer parameters
                     webgazer.params.showVideo = true;
                     webgazer.params.showFaceOverlay = true;
                     webgazer.params.showFaceFeedbackBox = true;
-                    webgazer.params.showVideoPreview = true;
+                    webgazer.params.videoViewerWidth = VIDEO_WIDTH;
+                    webgazer.params.videoViewerHeight = VIDEO_HEIGHT;
                     
-                    // Then initialize
+                    // Initialize
                     await webgazer.setRegression('ridge')
                         .setTracker('TFFacemesh')
                         .begin();
@@ -220,43 +243,10 @@
                         .applyKalmanFilter(true);
 
                     console.log('WebGazer initialization complete');
-
-                    // Set up video feed positioning
-                    var setup = function() {
-                        var video = document.getElementById('webgazerVideoFeed');
-                        if (!video) {
-                            console.error('Video feed element not found');
-                            return;
-                        }
-                        video.style.display = 'block';
-                        video.style.position = 'fixed';
-                        video.style.top = topDist;
-                        video.style.left = leftDist;
-                        video.style.width = width + 'px';
-                        video.style.height = height + 'px';
-                        video.style.transform = 'scaleX(-1)';
-                        video.style.zIndex = '999999';
-
-                        // Also adjust face overlay
-                        var overlay = document.getElementById('webgazerFaceOverlay');
-                        if (overlay) {
-                            overlay.style.width = width + 'px';
-                            overlay.style.height = height + 'px';
-                        }
-
-                        // And face feedback box
-                        var faceBox = document.getElementById('webgazerFaceFeedbackBox');
-                        if (faceBox) {
-                            faceBox.style.width = width + 'px';
-                            faceBox.style.height = height + 'px';
-                        }
-                    };
-
-                    // Initial setup
-                    setup();
                     
-                    // Also run setup after a short delay to ensure elements are ready
-                    setTimeout(setup, 1000);
+                    // Update status
+                    document.getElementById('status').innerHTML = 
+                        '<p>Eye tracker initialized. Please click each dot 5 times to calibrate.</p>';
                     
                 } catch (error) {
                     console.error('WebGazer initialization error:', error);

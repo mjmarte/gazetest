@@ -26,40 +26,40 @@ window.onload = async function() {
         .saveDataAcrossSessions(true)
         .begin();
 
-    // Customize video preview and tracking settings
+    // Try multiple approaches to set the face overlay size
     webgazer.params.showVideo = true;
     webgazer.params.showFaceOverlay = true;
     webgazer.params.showFaceFeedbackBox = true;
+    webgazer.params.faceFeedbackBoxRatio = 0.4;
     
     // Enable video preview and prediction points
     webgazer.showVideoPreview(true)
         .showPredictionPoints(true)
         .applyKalmanFilter(true);
 
-    // Set the video feed size
-    const videoElement = document.getElementById('webgazerVideoFeed');
-    if (videoElement) {
-        videoElement.style.width = '320px';
-        videoElement.style.height = '240px';
-    }
-
-    // Function to adjust the face overlay box size
+    // Function to adjust face overlay box size
     function adjustFaceOverlay() {
-        const overlay = document.querySelector('.faceFeedbackBox');
-        if (overlay) {
-            overlay.style.cssText = `
-                border: 3px solid #00ff00 !important;
-                position: fixed !important;
-                width: 140px !important;
-                height: 140px !important;
-                top: 50px !important;
-                left: 90px !important;
-                margin: 0 !important;
-            `;
-        }
+        // Try all possible class names that WebGazer might use
+        ['faceFeedbackBox', 'webgazerFaceFeedbackBox', 'webgazerFaceOverlay'].forEach(className => {
+            const overlay = document.querySelector('.' + className);
+            if (overlay) {
+                overlay.style.cssText = `
+                    border: 3px solid #00ff00 !important;
+                    position: fixed !important;
+                    width: 140px !important;
+                    height: 140px !important;
+                    top: 50px !important;
+                    left: 90px !important;
+                    margin: 0 !important;
+                    z-index: 1001 !important;
+                `;
+            }
+        });
     }
 
-    // Wait a bit for WebGazer to initialize and then adjust the face overlay
+    // Try multiple times after initialization
+    setTimeout(adjustFaceOverlay, 100);
+    setTimeout(adjustFaceOverlay, 500);
     setTimeout(adjustFaceOverlay, 1000);
     
     // Also adjust when window is resized

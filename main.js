@@ -49,10 +49,10 @@ window.onload = async function() {
             videoElement.style.width = width + 'px';
             videoElement.style.height = height + 'px';
 
-            // Adjust face overlay
+            // Adjust face overlay - make it significantly smaller than the video stream
             const overlay = document.querySelector('.faceFeedbackBox');
             if (overlay) {
-                const boxSize = Math.min(width, height) * 0.7; // Face box should be 70% of the smaller video dimension
+                const boxSize = Math.min(width, height) * 0.45; // Reduced to 45% of the smaller video dimension
                 overlay.style.width = boxSize + 'px';
                 overlay.style.height = boxSize + 'px';
                 

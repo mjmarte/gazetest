@@ -157,9 +157,9 @@
                     console.log(`Recording finished. Average sampling rate: ${samplingRate.toFixed(2)} Hz`);
                     
                     const csvContent = "data:text/csv;charset=utf-8," + 
-                        "timestamp,y,x,elapsedTime\n" +
+                        "timestamp,x,y,elapsedTime\n" +
                         gazeData.map(row => 
-                            `${row.timestamp},${row.y},${row.x},${row.elapsedTime}`
+                            `${row.timestamp},${row.x},${row.y},${row.elapsedTime}`
                         ).join("\n");
                     
                     const encodedUri = encodeURI(csvContent);

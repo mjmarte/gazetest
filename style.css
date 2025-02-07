@@ -131,24 +131,24 @@ li {
 
 /* Target WebGazer's face overlay */
 .webgazerFaceOverlay {
-    width: 140px !important;
-    height: 140px !important;
+    width: 100px !important;
+    height: 100px !important;
     border: 3px solid #00ff00 !important;
     position: fixed !important;
-    top: 50px !important;
-    left: 90px !important;
+    top: 70px !important;
+    left: 110px !important;
     margin: 0 !important;
     z-index: 1001 !important;
 }
 
 /* Also try the alternative class name */
 .webgazerFaceFeedbackBox {
-    width: 140px !important;
-    height: 140px !important;
+    width: 100px !important;
+    height: 100px !important;
     border: 3px solid #00ff00 !important;
     position: fixed !important;
-    top: 50px !important;
-    left: 90px !important;
+    top: 70px !important;
+    left: 110px !important;
     margin: 0 !important;
     z-index: 1001 !important;
 }

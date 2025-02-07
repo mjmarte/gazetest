@@ -118,3 +118,16 @@ li {
     bottom:2vw;
     right:2vw;
 }
+
+/* Face tracking styles */
+.faceFeedbackBox {
+    border: 3px solid #00ff00 !important;
+    transition: all 0.1s ease-out;
+}
+
+#webgazerVideoFeed {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+}

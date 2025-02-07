@@ -1,5 +1,12 @@
 window.onload = async function() {
 
+    // Set up video constraints for better face tracking
+    const videoConstraints = {
+        width: { min: 320, ideal: 640, max: 1920 },
+        height: { min: 240, ideal: 480, max: 1080 },
+        facingMode: "user"
+    };
+
     //start the webgazer tracker
     await webgazer.setRegression('ridge') /* currently must set regression and tracker */
         .setTracker('clmtrackr')
@@ -29,14 +36,36 @@ window.onload = async function() {
         .showPredictionPoints(true)
         .applyKalmanFilter(true); // Enable Kalman filter for additional smoothing
 
-    // Adjust face detection box size
-    const videoElement = document.getElementById('webgazerVideoFeed');
-    if (videoElement) {
-        videoElement.style.width = '320px';  // Adjust as needed
-        videoElement.style.height = '240px'; // Adjust as needed
+    // Function to adjust face overlay box size
+    function adjustFaceOverlay() {
+        const videoElement = document.getElementById('webgazerVideoFeed');
+        if (videoElement) {
+            // Set video size relative to viewport
+            const maxWidth = Math.min(320, window.innerWidth * 0.3);
+            const aspectRatio = videoConstraints.height.ideal / videoConstraints.width.ideal;
+            const width = maxWidth;
+            const height = width * aspectRatio;
+
+            videoElement.style.width = width + 'px';
+            videoElement.style.height = height + 'px';
+
+            // Adjust face overlay
+            const overlay = document.querySelector('.faceFeedbackBox');
+            if (overlay) {
+                const boxSize = Math.min(width, height) * 0.7; // Face box should be 70% of the smaller video dimension
+                overlay.style.width = boxSize + 'px';
+                overlay.style.height = boxSize + 'px';
+                
+                // Center the overlay
+                const topOffset = (height - boxSize) / 2;
+                const leftOffset = (width - boxSize) / 2;
+                overlay.style.top = topOffset + 'px';
+                overlay.style.left = leftOffset + 'px';
+            }
+        }
     }
 
-    //Set up the webgazer video feedback.
+    // Initial setup
     var setup = function() {
 
         //Set up the main canvas. The main canvas is used to calibrate the webgazer.
@@ -44,9 +73,15 @@ window.onload = async function() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         canvas.style.position = 'fixed';
+        
+        // Adjust face overlay after setup
+        setTimeout(adjustFaceOverlay, 1000);
     };
+    
     setup();
 
+    // Adjust face overlay on window resize
+    window.addEventListener('resize', adjustFaceOverlay);
 };
 
 // Set to true if you want to save the data even if you reload the page.

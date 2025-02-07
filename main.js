@@ -56,7 +56,7 @@ window.onload = async function() {
         // Calculate box size - make it 60% of video height
         const boxSize = Math.round(240 * 0.6);
         
-        // Position box in center of video
+        // Position box in center of video container
         const topOffset = Math.round((240 - boxSize) / 2);
         const leftOffset = Math.round((320 - boxSize) / 2);
 
@@ -65,9 +65,11 @@ window.onload = async function() {
         faceOverlay.style.height = boxSize + 'px';
         faceOverlay.style.top = topOffset + 'px';
         faceOverlay.style.left = leftOffset + 'px';
-        faceOverlay.style.border = '3px solid #00ff00';
+        faceOverlay.style.border = '3.3px solid #00ff00';  // Increased from 3px to 3.3px (10% thicker)
         faceOverlay.style.position = 'fixed';
         faceOverlay.style.zIndex = '1001';
+        faceOverlay.style.boxSizing = 'border-box';  // Ensure border is included in size calculations
+        faceOverlay.style.transform = 'translateX(0)';  // Reset any transforms
     }
 
     // Call immediately and set up an interval to keep checking

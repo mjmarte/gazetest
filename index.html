@@ -180,17 +180,28 @@
                     video.style.transform = 'scaleX(-1)';
                 };
 
+                // Store click coordinates for accuracy test
+                var xPast50 = new Array(50);
+                var yPast50 = new Array(50);
+                var clickedPoints = {};
+
                 // Initialize webgazer
                 await webgazer.setRegression('ridge')
                     .setTracker('TFFacemesh')
                     .setGazeListener(function(data, timestamp) {
                         if (data == null) return;
                         
+                        // Store last 50 predictions for accuracy calculation
+                        xPast50.push(data.x);
+                        yPast50.push(data.y);
+                        if (xPast50.length > 50) {
+                            xPast50.shift();
+                            yPast50.shift();
+                        }
+                        
                         // Update gaze point display
-                        var xprediction = data.x;
-                        var yprediction = data.y;
-                        document.getElementById('gaze-x').textContent = Math.round(xprediction);
-                        document.getElementById('gaze-y').textContent = Math.round(yprediction);
+                        document.getElementById('gaze-x').textContent = Math.round(data.x);
+                        document.getElementById('gaze-y').textContent = Math.round(data.y);
                     })
                     .begin();
                 
@@ -204,6 +215,37 @@
                 var PointCalibrate = 0;
                 var CalibrationPoints = {};
                 
+                // Calculate point position
+                function calculatePointPosition(element) {
+                    const rect = element.getBoundingClientRect();
+                    return {
+                        x: rect.left + rect.width / 2,
+                        y: rect.top + rect.height / 2
+                    };
+                }
+
+                // Calculate accuracy
+                function calculateAccuracy() {
+                    var accuracies = [];
+                    for (let pointId in clickedPoints) {
+                        const point = clickedPoints[pointId];
+                        const xError = Math.abs((point.x - point.predX) / window.innerWidth);
+                        const yError = Math.abs((point.y - point.predY) / window.innerHeight);
+                        accuracies.push({
+                            x: 100 * (1 - xError),
+                            y: 100 * (1 - yError)
+                        });
+                    }
+                    
+                    // Calculate average accuracy
+                    const avgAccuracy = accuracies.reduce((acc, val) => ({
+                        x: acc.x + val.x / accuracies.length,
+                        y: acc.y + val.y / accuracies.length
+                    }), { x: 0, y: 0 });
+                    
+                    return avgAccuracy;
+                }
+                
                 // Add click handlers to calibration points
                 document.querySelectorAll('.Calibration').forEach(function(el) {
                     el.addEventListener('click', function(event) {
@@ -214,6 +256,17 @@
                         }
                         CalibrationPoints[id]++;
                         
+                        // Store point position and current prediction
+                        const pos = calculatePointPosition(event.target);
+                        if (!clickedPoints[id]) {
+                            clickedPoints[id] = {
+                                x: pos.x,
+                                y: pos.y,
+                                predX: xPast50.reduce((a, b) => a + b, 0) / xPast50.length,
+                                predY: yPast50.reduce((a, b) => a + b, 0) / yPast50.length
+                            };
+                        }
+                        
                         if (CalibrationPoints[id] == 5) {
                             event.target.style.backgroundColor = 'green';
                             PointCalibrate++;
@@ -222,9 +275,15 @@
                         }
                         
                         if (PointCalibrate >= 9) {
+                            // Calculate and display accuracy
+                            const accuracy = calculateAccuracy();
+                            document.getElementById('status').innerHTML = 
+                                `<p>Calibration complete!</p>
+                                <p>Accuracy: X: ${accuracy.x.toFixed(2)}%, Y: ${accuracy.y.toFixed(2)}%</p>
+                                <p>You can now start recording.</p>`;
+                            
                             // Show recording controls
                             document.getElementById('recording-controls').style.display = 'block';
-                            document.getElementById('status').innerHTML = '<p>Calibration complete! You can now start recording.</p>';
                         }
                     });
                 });
@@ -255,7 +314,7 @@
                     if (!isRecording) return;
                     
                     const prediction = webgazer.getCurrentPrediction();
-                    if (prediction) {
+                    if (prediction && prediction.x !== null && prediction.y !== null) {
                         gazeData.push({
                             timestamp: performance.now(),
                             x: prediction.x,
@@ -285,23 +344,28 @@
                     document.getElementById('stop-recording').style.display = 'none';
                     document.getElementById('start-recording').style.removeProperty('display');
                     
-                    const duration = (gazeData[gazeData.length - 1].timestamp - gazeData[0].timestamp) / 1000;
-                    const samplingRate = gazeData.length / duration;
-                    console.log(`Recording finished. Average sampling rate: ${samplingRate.toFixed(2)} Hz`);
-                    
-                    const csvContent = "data:text/csv;charset=utf-8," + 
-                        "timestamp,x,y,elapsedTime\n" +
-                        gazeData.map(row => 
-                            `${row.timestamp},${row.x},${row.y},${row.elapsedTime}`
-                        ).join("\n");
-                    
-                    const encodedUri = encodeURI(csvContent);
-                    const link = document.createElement("a");
-                    link.setAttribute("href", encodedUri);
-                    link.setAttribute("download", `gaze_data_${new Date().toISOString()}.csv`);
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+                    // Only save if we have valid data
+                    if (gazeData.length > 0) {
+                        const duration = (gazeData[gazeData.length - 1].timestamp - gazeData[0].timestamp) / 1000;
+                        const samplingRate = gazeData.length / duration;
+                        console.log(`Recording finished. Average sampling rate: ${samplingRate.toFixed(2)} Hz`);
+                        
+                        const csvContent = "data:text/csv;charset=utf-8," + 
+                            "timestamp,x,y,elapsedTime\n" +
+                            gazeData.map(row => 
+                                `${row.timestamp},${row.x},${row.y},${row.elapsedTime}`
+                            ).join("\n");
+                        
+                        const encodedUri = encodeURI(csvContent);
+                        const link = document.createElement("a");
+                        link.setAttribute("href", encodedUri);
+                        link.setAttribute("download", `gaze_data_${new Date().toISOString()}.csv`);
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    } else {
+                        console.log("No valid gaze data recorded");
+                    }
                 };
 
                 // Add event listeners

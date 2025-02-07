@@ -30,10 +30,18 @@ window.onload = async function() {
     webgazer.params.showVideo = true;
     webgazer.params.showFaceOverlay = true;
     webgazer.params.showFaceFeedbackBox = true;
+    webgazer.params.faceFeedbackBoxRatio = 0.5; // This should make the box 50% of the video size
     
     webgazer.showVideoPreview(true)
         .showPredictionPoints(true)
         .applyKalmanFilter(true); // Enable Kalman filter for additional smoothing
+
+    // Set the video feed size
+    const videoElement = document.getElementById('webgazerVideoFeed');
+    if (videoElement) {
+        videoElement.style.width = '320px';
+        videoElement.style.height = '240px';
+    }
 
     // Initial setup
     var setup = function() {

@@ -131,8 +131,6 @@ li {
 
 /* Target WebGazer's face overlay */
 .webgazerFaceOverlay {
-    width: 100px !important;
-    height: 100px !important;
     border: 3px solid #00ff00 !important;
     position: fixed !important;
     top: 70px !important;
@@ -143,8 +141,6 @@ li {
 
 /* Also try the alternative class name */
 .webgazerFaceFeedbackBox {
-    width: 100px !important;
-    height: 100px !important;
     border: 3px solid #00ff00 !important;
     position: fixed !important;
     top: 70px !important;

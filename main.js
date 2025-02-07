@@ -39,29 +39,52 @@ window.onload = async function() {
 
     // Function to adjust face overlay box size
     function adjustFaceOverlay() {
-        // Try all possible class names that WebGazer might use
-        ['faceFeedbackBox', 'webgazerFaceFeedbackBox', 'webgazerFaceOverlay'].forEach(className => {
+        const video = document.getElementById('webgazerVideoFeed');
+        if (!video) return;
+
+        // Get video dimensions
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
+        const pw = parseInt(video.style.width);
+        const ph = parseInt(video.style.height);
+
+        // Find the size of the box
+        const smaller = Math.min(vw, vh);
+        const larger = Math.max(vw, vh);
+        
+        // Overall scalar
+        const scalar = (vw == larger ? pw / vw : ph / vh);
+        
+        // Calculate box size - using 0.6 as the ratio for a smaller box
+        const boxSize = Math.round((smaller * 0.6) * scalar);
+        
+        // Calculate position to center the box
+        const topVal = Math.round((ph - boxSize) / 2);
+        const leftVal = Math.round((pw - boxSize) / 2);
+
+        // Apply to all possible overlay elements
+        ['webgazerFaceFeedbackBox', 'webgazerFaceOverlay'].forEach(className => {
             const overlay = document.querySelector('.' + className);
             if (overlay) {
-                overlay.style.cssText = `
-                    border: 3px solid #00ff00 !important;
-                    position: fixed !important;
-                    width: 140px !important;
-                    height: 140px !important;
-                    top: 50px !important;
-                    left: 90px !important;
-                    margin: 0 !important;
-                    z-index: 1001 !important;
-                `;
+                overlay.style.width = boxSize + 'px';
+                overlay.style.height = boxSize + 'px';
+                overlay.style.top = topVal + 'px';
+                overlay.style.left = leftVal + 'px';
             }
         });
     }
 
-    // Try multiple times after initialization
-    setTimeout(adjustFaceOverlay, 100);
-    setTimeout(adjustFaceOverlay, 500);
-    setTimeout(adjustFaceOverlay, 1000);
-    
+    // Call adjustFaceOverlay when video loads and periodically after
+    const videoCheck = setInterval(() => {
+        const video = document.getElementById('webgazerVideoFeed');
+        if (video && video.videoWidth > 0) {
+            adjustFaceOverlay();
+            // Once video is loaded, reduce check frequency
+            clearInterval(videoCheck);
+            setInterval(adjustFaceOverlay, 1000);
+        }
+    }, 100);
+
     // Also adjust when window is resized
     window.addEventListener('resize', adjustFaceOverlay);
 

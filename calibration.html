@@ -110,16 +110,29 @@
                     
                     const prediction = webgazer.getCurrentPrediction();
                     if (prediction) {
-                        gazeData.push({
-                            timestamp: performance.now(),
-                            x: prediction.x,
-                            y: prediction.y,
-                            elapsedTime: performance.now() - recordingStartTime
-                        });
+                        const currentTime = performance.now();
+                        const elapsedTime = currentTime - recordingStartTime;
+                        collectGazeData(prediction, elapsedTime);
                     }
                     
                     frameRequestId = requestAnimationFrame(recordGazeData);
                 }
+
+                function collectGazeData(data, elapsedTime) {
+                    const currentTime = performance.now();
+                    const targetInterval = 1000 / 60; // 16.67ms for 60Hz
+                    if (currentTime - lastSampleTime >= targetInterval) {
+                        gazeData.push({
+                            timestamp: new Date().getTime(),
+                            x: data.x,
+                            y: data.y,
+                            elapsedTime: elapsedTime
+                        });
+                        lastSampleTime = currentTime;
+                    }
+                }
+
+                let lastSampleTime = 0;
 
                 function updateRecordingTime() {
                     const elapsed = Date.now() - recordingStartTime;
@@ -144,9 +157,9 @@
                     console.log(`Recording finished. Average sampling rate: ${samplingRate.toFixed(2)} Hz`);
                     
                     const csvContent = "data:text/csv;charset=utf-8," + 
-                        "timestamp,x,y,elapsedTime\n" +
+                        "timestamp,y,x,elapsedTime\n" +
                         gazeData.map(row => 
-                            `${row.timestamp},${row.x},${row.y},${row.elapsedTime}`
+                            `${row.timestamp},${row.y},${row.x},${row.elapsedTime}`
                         ).join("\n");
                     
                     const encodedUri = encodeURI(csvContent);

@@ -2,16 +2,39 @@ window.onload = async function() {
 
     //start the webgazer tracker
     await webgazer.setRegression('ridge') /* currently must set regression and tracker */
-        //.setTracker('clmtrackr')
+        .setTracker('clmtrackr')
         .setGazeListener(function(data, clock) {
-          //   console.log(data); /* data is an object containing an x and y key which are the x and y prediction coordinates (no bounds limiting) */
-          //   console.log(clock); /* elapsed time in milliseconds since webgazer.begin() was called */
+            // Apply additional smoothing to the gaze data
+            if (data) {
+                if (!window.lastGaze) {
+                    window.lastGaze = data;
+                }
+                // Implement exponential smoothing
+                const smoothingFactor = 0.8; // Adjust this value between 0 and 1
+                data.x = smoothingFactor * data.x + (1 - smoothingFactor) * window.lastGaze.x;
+                data.y = smoothingFactor * data.y + (1 - smoothingFactor) * window.lastGaze.y;
+                window.lastGaze = data;
+            }
         })
         .saveDataAcrossSessions(true)
         .begin();
-        webgazer.showVideoPreview(true) /* shows all video previews */
-            .showPredictionPoints(true) /* shows a square every 100 milliseconds where current prediction is */
-            .applyKalmanFilter(true); /* Kalman Filter defaults to on. Can be toggled by user. */
+
+    // Customize video preview and tracking settings
+    webgazer.params.showVideo = true;
+    webgazer.params.showFaceOverlay = true;
+    webgazer.params.showFaceFeedbackBox = true;
+    webgazer.params.faceFeedbackBoxRatio = 0.8; // Adjust this value to make face box smaller
+    
+    webgazer.showVideoPreview(true)
+        .showPredictionPoints(true)
+        .applyKalmanFilter(true); // Enable Kalman filter for additional smoothing
+
+    // Adjust face detection box size
+    const videoElement = document.getElementById('webgazerVideoFeed');
+    if (videoElement) {
+        videoElement.style.width = '320px';  // Adjust as needed
+        videoElement.style.height = '240px'; // Adjust as needed
+    }
 
     //Set up the webgazer video feedback.
     var setup = function() {

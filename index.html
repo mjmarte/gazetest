@@ -548,7 +548,7 @@
                         const csvContent = "data:text/csv;charset=utf-8," + 
                             "sample,x,y,timestamp\n" +
                             gazeData.map(row => 
-                                `${row.sampleNumber},${row.x},${row.y},${row.timestamp}`
+                                `${row.sampleNumber},${row.y},${row.x},${row.timestamp}`  // Swapped row.x and row.y
                             ).join("\n");
                         
                         const encodedUri = encodeURI(csvContent);

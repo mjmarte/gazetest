@@ -159,7 +159,7 @@
                     const csvContent = "data:text/csv;charset=utf-8," + 
                         "timestamp,x,y,elapsedTime\n" +
                         gazeData.map(row => 
-                            `${row.timestamp},${row.x},${row.y},${row.elapsedTime}`
+                            `${row.timestamp},${row.y},${row.x},${row.elapsedTime}`
                         ).join("\n");
                     
                     const encodedUri = encodeURI(csvContent);

@@ -131,20 +131,26 @@ li {
 
 /* Target WebGazer's face overlay */
 .webgazerFaceOverlay {
-    border: 3px solid #00ff00 !important;
+    border: 3.3px solid #00ff00 !important;
     position: fixed !important;
-    top: 70px !important;
-    left: 110px !important;
+    width: 144px !important;  /* 60% of 240px */
+    height: 144px !important;
+    top: 48px !important;    /* (240px - 144px) / 2 */
+    left: 88px !important;   /* (320px - 144px) / 2 */
     margin: 0 !important;
     z-index: 1001 !important;
+    box-sizing: border-box !important;
 }
 
 /* Also try the alternative class name */
 .webgazerFaceFeedbackBox {
-    border: 3px solid #00ff00 !important;
+    border: 3.3px solid #00ff00 !important;
     position: fixed !important;
-    top: 70px !important;
-    left: 110px !important;
+    width: 144px !important;
+    height: 144px !important;
+    top: 48px !important;
+    left: 88px !important;
     margin: 0 !important;
     z-index: 1001 !important;
+    box-sizing: border-box !important;
 }

@@ -137,9 +137,19 @@ li {
 .webgazerFaceFeedbackBoxLoop {
     border: 3.3px solid #00ff00 !important;
     position: fixed !important;
-    margin: 0 !important;
-    z-index: 1001 !important;
-    box-sizing: border-box !important;
+    width: 144px !important;
+    height: 144px !important;
+    top: 48px !important;  /* Centered vertically: (240px - 144px) / 2 = 48px */
+    left: 88px !important; /* Centered horizontally: (320px - 144px) / 2 = 88px */
+    z-index: 1000;
+}
+
+/* Override any WebGazer inline styles */
+#webgazerVideoContainer > div {
+    width: 144px !important;
+    height: 144px !important;
+    top: 48px !important;
+    left: 88px !important;
 }
 
 /* Remove any conflicting styles */

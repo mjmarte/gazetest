@@ -163,8 +163,9 @@
         <script src="webgazer.js"></script>
         <script>
             window.onload = async function() {
-                var width = 320;
-                var height = 240;
+                // Smaller video size
+                var width = 200;  
+                var height = 150;  
                 var topDist = '0px';
                 var leftDist = '0px';
                 
@@ -187,59 +188,82 @@
                     });
                 }
 
+                // Wait helper
+                function wait(ms) {
+                    return new Promise(resolve => setTimeout(resolve, ms));
+                }
+
                 // Initialize webgazer with proper error handling
                 try {
+                    // First set up the video feed
+                    webgazer.params.showVideo = true;
+                    webgazer.params.showFaceOverlay = true;
+                    webgazer.params.showFaceFeedbackBox = true;
+                    webgazer.params.showVideoPreview = true;
+                    
+                    // Then initialize
                     await webgazer.setRegression('ridge')
                         .setTracker('TFFacemesh')
                         .begin();
                     
                     console.log('WebGazer initialization started');
                     
-                    // Wait for WebGazer to stabilize and get first prediction
-                    let startTime = performance.now();
-                    while (performance.now() - startTime < 5000) {  // Try for 5 seconds max
-                        await wait(500);  // Check every 500ms
-                        const pred = await webgazer.getCurrentPrediction();
-                        if (pred && pred.x !== null && pred.y !== null) {
-                            logPrediction('First valid prediction', pred);
-                            break;
-                        }
-                    }
+                    // Wait for WebGazer to stabilize
+                    await wait(1000);
                     
                     // Check if WebGazer is running
                     if (!webgazer.isReady()) {
                         throw new Error('WebGazer failed to initialize properly');
                     }
 
-                    webgazer.showVideoPreview(true)
-                        .showPredictionPoints(true)
+                    webgazer.showPredictionPoints(true)
                         .applyKalmanFilter(true);
 
                     console.log('WebGazer initialization complete');
+
+                    // Set up video feed positioning
+                    var setup = function() {
+                        var video = document.getElementById('webgazerVideoFeed');
+                        if (!video) {
+                            console.error('Video feed element not found');
+                            return;
+                        }
+                        video.style.display = 'block';
+                        video.style.position = 'fixed';
+                        video.style.top = topDist;
+                        video.style.left = leftDist;
+                        video.style.width = width + 'px';
+                        video.style.height = height + 'px';
+                        video.style.transform = 'scaleX(-1)';
+                        video.style.zIndex = '999999';
+
+                        // Also adjust face overlay
+                        var overlay = document.getElementById('webgazerFaceOverlay');
+                        if (overlay) {
+                            overlay.style.width = width + 'px';
+                            overlay.style.height = height + 'px';
+                        }
+
+                        // And face feedback box
+                        var faceBox = document.getElementById('webgazerFaceFeedbackBox');
+                        if (faceBox) {
+                            faceBox.style.width = width + 'px';
+                            faceBox.style.height = height + 'px';
+                        }
+                    };
+
+                    // Initial setup
+                    setup();
+                    
+                    // Also run setup after a short delay to ensure elements are ready
+                    setTimeout(setup, 1000);
+                    
                 } catch (error) {
                     console.error('WebGazer initialization error:', error);
                     document.getElementById('status').innerHTML = 
                         '<p style="color: red;">Error initializing eye tracker. Please refresh and try again.</p>';
                     return;
                 }
-
-                // Set up video feed positioning
-                var setup = function() {
-                    var video = document.getElementById('webgazerVideoFeed');
-                    if (!video) {
-                        console.error('Video feed element not found');
-                        return;
-                    }
-                    video.style.display = 'block';
-                    video.style.position = 'fixed';
-                    video.style.top = topDist;
-                    video.style.left = leftDist;
-                    video.style.width = width + 'px';
-                    video.style.height = height + 'px';
-                    video.style.transform = 'scaleX(-1)';
-                };
-
-                setup();
 
                 // Add gaze data collector
                 webgazer.setGazeListener(function(data, timestamp) {

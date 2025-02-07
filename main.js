@@ -30,11 +30,11 @@ window.onload = async function() {
     webgazer.params.showVideo = true;
     webgazer.params.showFaceOverlay = true;
     webgazer.params.showFaceFeedbackBox = true;
-    webgazer.params.faceFeedbackBoxRatio = 0.5; // This should make the box 50% of the video size
     
+    // Enable video preview and prediction points
     webgazer.showVideoPreview(true)
         .showPredictionPoints(true)
-        .applyKalmanFilter(true); // Enable Kalman filter for additional smoothing
+        .applyKalmanFilter(true);
 
     // Set the video feed size
     const videoElement = document.getElementById('webgazerVideoFeed');
@@ -42,6 +42,28 @@ window.onload = async function() {
         videoElement.style.width = '320px';
         videoElement.style.height = '240px';
     }
+
+    // Function to adjust the face overlay box size
+    function adjustFaceOverlay() {
+        const overlay = document.querySelector('.faceFeedbackBox');
+        if (overlay) {
+            overlay.style.cssText = `
+                border: 3px solid #00ff00 !important;
+                position: fixed !important;
+                width: 140px !important;
+                height: 140px !important;
+                top: 50px !important;
+                left: 90px !important;
+                margin: 0 !important;
+            `;
+        }
+    }
+
+    // Wait a bit for WebGazer to initialize and then adjust the face overlay
+    setTimeout(adjustFaceOverlay, 1000);
+    
+    // Also adjust when window is resized
+    window.addEventListener('resize', adjustFaceOverlay);
 
     // Initial setup
     var setup = function() {

@@ -172,27 +172,64 @@
                 var xPast50 = new Array(50);
                 var yPast50 = new Array(50);
                 var clickedPoints = {};
-                
-                // Wait for WebGazer to fully initialize
-                function wait(ms) {
-                    return new Promise(resolve => setTimeout(resolve, ms));
+                var lastValidPrediction = null;
+
+                // Debug helper
+                function logPrediction(prefix, prediction) {
+                    if (!prediction) {
+                        console.log(prefix + ': null prediction');
+                        return;
+                    }
+                    console.log(prefix + ':', {
+                        x: prediction.x,
+                        y: prediction.y,
+                        eyeFeatures: prediction.eyeFeatures,
+                    });
                 }
 
-                // Initialize webgazer
-                await webgazer.setRegression('ridge')
-                    .setTracker('TFFacemesh')
-                    .begin();
-                
-                // Wait for WebGazer to stabilize
-                await wait(2500);
-                
-                webgazer.showVideoPreview(true)
-                    .showPredictionPoints(true)
-                    .applyKalmanFilter(true);
+                // Initialize webgazer with proper error handling
+                try {
+                    await webgazer.setRegression('ridge')
+                        .setTracker('TFFacemesh')
+                        .begin();
+                    
+                    console.log('WebGazer initialization started');
+                    
+                    // Wait for WebGazer to stabilize and get first prediction
+                    let startTime = performance.now();
+                    while (performance.now() - startTime < 5000) {  // Try for 5 seconds max
+                        await wait(500);  // Check every 500ms
+                        const pred = await webgazer.getCurrentPrediction();
+                        if (pred && pred.x !== null && pred.y !== null) {
+                            logPrediction('First valid prediction', pred);
+                            break;
+                        }
+                    }
+                    
+                    // Check if WebGazer is running
+                    if (!webgazer.isReady()) {
+                        throw new Error('WebGazer failed to initialize properly');
+                    }
+
+                    webgazer.showVideoPreview(true)
+                        .showPredictionPoints(true)
+                        .applyKalmanFilter(true);
+
+                    console.log('WebGazer initialization complete');
+                } catch (error) {
+                    console.error('WebGazer initialization error:', error);
+                    document.getElementById('status').innerHTML = 
+                        '<p style="color: red;">Error initializing eye tracker. Please refresh and try again.</p>';
+                    return;
+                }
 
                 // Set up video feed positioning
                 var setup = function() {
                     var video = document.getElementById('webgazerVideoFeed');
+                    if (!video) {
+                        console.error('Video feed element not found');
+                        return;
+                    }
                     video.style.display = 'block';
                     video.style.position = 'fixed';
                     video.style.top = topDist;
@@ -206,7 +243,16 @@
 
                 // Add gaze data collector
                 webgazer.setGazeListener(function(data, timestamp) {
-                    if (data == null || data.x == null || data.y == null) return;
+                    if (!data || data.x === null || data.y === null) {
+                        return;
+                    }
+                    
+                    // Store valid prediction
+                    lastValidPrediction = {
+                        x: data.x,
+                        y: data.y,
+                        timestamp: timestamp
+                    };
                     
                     // Store last 50 predictions for accuracy calculation
                     xPast50.push(data.x);
@@ -221,54 +267,13 @@
                     document.getElementById('gaze-y').textContent = Math.round(data.y);
                 });
 
-                // Calibration functionality
-                var PointCalibrate = 0;
-                var CalibrationPoints = {};
-                
-                // Calculate point position
-                function calculatePointPosition(element) {
-                    const rect = element.getBoundingClientRect();
-                    return {
-                        x: rect.left + rect.width / 2,
-                        y: rect.top + rect.height / 2
-                    };
-                }
-
-                // Calculate accuracy
-                function calculateAccuracy() {
-                    var windowHeight = window.innerHeight;
-                    var windowWidth = window.innerWidth;
-                    var accuracies = [];
-                    
-                    for (let pointId in clickedPoints) {
-                        const point = clickedPoints[pointId];
-                        
-                        // Calculate distance between prediction and actual point
-                        const xDiff = point.x - point.predX;
-                        const yDiff = point.y - point.predY;
-                        const distance = Math.sqrt((xDiff * xDiff) + (yDiff * yDiff));
-                        
-                        // Calculate precision percentage using window height as reference
-                        const halfWindowHeight = windowHeight / 2;
-                        let precision = 0;
-                        if (distance <= halfWindowHeight && distance > -1) {
-                            precision = 100 - (distance / halfWindowHeight * 100);
-                        } else if (distance > halfWindowHeight) {
-                            precision = 0;
-                        } else if (distance > -1) {
-                            precision = 100;
-                        }
-                        
-                        accuracies.push(precision);
-                    }
-                    
-                    // Calculate average accuracy
-                    const avgAccuracy = accuracies.reduce((sum, val) => sum + val, 0) / accuracies.length;
-                    return Math.round(avgAccuracy);
-                }
-
                 // Show calibration validation point
                 function showValidationPoint() {
+                    // Clear previous data
+                    xPast50 = new Array(50);
+                    yPast50 = new Array(50);
+                    lastValidPrediction = null;
+
                     const validationPoint = document.createElement('div');
                     validationPoint.style.position = 'fixed';
                     validationPoint.style.left = '50%';
@@ -282,60 +287,84 @@
                     validationPoint.id = 'validationPoint';
                     document.body.appendChild(validationPoint);
 
-                    // Store predictions for 5 seconds
-                    const predictions = [];
-                    const startTime = performance.now();
-                    const collectData = setInterval(() => {
-                        const prediction = webgazer.getCurrentPrediction();
-                        if (prediction && prediction.x !== null && prediction.y !== null) {
-                            predictions.push({
-                                x: prediction.x,
-                                y: prediction.y
-                            });
-                        }
-                    }, 50);  // Collect at 20Hz
-
-                    // After 5 seconds, calculate validation accuracy
+                    console.log('Starting validation phase');
+                    
+                    // Give time for gaze to stabilize on the point
                     setTimeout(() => {
-                        clearInterval(collectData);
-                        document.body.removeChild(validationPoint);
+                        // Store predictions for 3 seconds
+                        const predictions = [];
+                        const startTime = performance.now();
                         
-                        if (predictions.length === 0) {
-                            alert('No gaze data collected during validation. Please try calibrating again.');
-                            return;
-                        }
+                        const collectData = setInterval(async () => {
+                            const prediction = await webgazer.getCurrentPrediction();
+                            if (prediction && prediction.x !== null && prediction.y !== null) {
+                                predictions.push({
+                                    x: prediction.x,
+                                    y: prediction.y,
+                                    timestamp: performance.now()
+                                });
+                                logPrediction('Validation prediction', prediction);
+                            }
+                        }, 50);  // Collect at 20Hz
 
-                        // Calculate average prediction
-                        const avgPred = predictions.reduce((acc, curr) => ({
-                            x: acc.x + curr.x / predictions.length,
-                            y: acc.y + curr.y / predictions.length
-                        }), { x: 0, y: 0 });
+                        // After 3 seconds, calculate validation accuracy
+                        setTimeout(() => {
+                            clearInterval(collectData);
+                            document.body.removeChild(validationPoint);
+                            
+                            console.log('Validation complete, predictions:', predictions);
+                            
+                            if (predictions.length === 0) {
+                                console.error('No valid predictions during validation');
+                                document.getElementById('status').innerHTML += 
+                                    '<p style="color: red;">Validation failed - no gaze data collected. Please try calibrating again.</p>';
+                                return;
+                            }
 
-                        // Calculate distance to center
-                        const centerX = window.innerWidth / 2;
-                        const centerY = window.innerHeight / 2;
-                        const xDiff = centerX - avgPred.x;
-                        const yDiff = centerY - avgPred.y;
-                        const distance = Math.sqrt((xDiff * xDiff) + (yDiff * yDiff));
-                        
-                        // Calculate validation accuracy
-                        const halfWindowHeight = window.innerHeight / 2;
-                        let validationAccuracy = 0;
-                        if (distance <= halfWindowHeight && distance > -1) {
-                            validationAccuracy = 100 - (distance / halfWindowHeight * 100);
-                        }
-                        
-                        document.getElementById('status').innerHTML += 
-                            `<p>Validation Accuracy: ${Math.round(validationAccuracy)}%</p>`;
-                        
-                        // Show recording controls
-                        document.getElementById('recording-controls').style.display = 'block';
-                    }, 5000);
+                            // Calculate average prediction
+                            const avgPred = predictions.reduce((acc, curr) => ({
+                                x: acc.x + curr.x / predictions.length,
+                                y: acc.y + curr.y / predictions.length
+                            }), { x: 0, y: 0 });
+
+                            console.log('Average prediction:', avgPred);
+
+                            // Calculate distance to center
+                            const centerX = window.innerWidth / 2;
+                            const centerY = window.innerHeight / 2;
+                            const xDiff = centerX - avgPred.x;
+                            const yDiff = centerY - avgPred.y;
+                            const distance = Math.sqrt((xDiff * xDiff) + (yDiff * yDiff));
+                            
+                            console.log('Validation metrics:', {
+                                centerX,
+                                centerY,
+                                avgPredX: avgPred.x,
+                                avgPredY: avgPred.y,
+                                distance
+                            });
+                            
+                            // Calculate validation accuracy
+                            const halfWindowHeight = window.innerHeight / 2;
+                            let validationAccuracy = 0;
+                            if (distance <= halfWindowHeight && distance > -1) {
+                                validationAccuracy = 100 - (distance / halfWindowHeight * 100);
+                            }
+                            
+                            document.getElementById('status').innerHTML += 
+                                `<p>Validation Accuracy: ${Math.round(validationAccuracy)}%</p>
+                                 <p>Average prediction: (${Math.round(avgPred.x)}, ${Math.round(avgPred.y)})</p>
+                                 <p>Distance from center: ${Math.round(distance)}px</p>`;
+                            
+                            // Show recording controls
+                            document.getElementById('recording-controls').style.display = 'block';
+                        }, 3000);
+                    }, 2000);  // Wait 2 seconds before starting validation
                 }
                 
                 // Add click handlers to calibration points
                 document.querySelectorAll('.Calibration').forEach(function(el) {
-                    el.addEventListener('click', function(event) {
+                    el.addEventListener('click', async function(event) {
                         var id = event.target.id;
                         
                         if (!CalibrationPoints[id]) {
@@ -343,15 +372,29 @@
                         }
                         CalibrationPoints[id]++;
                         
+                        // Wait for next valid prediction after click
+                        let clickTime = performance.now();
+                        let prediction = null;
+                        while (performance.now() - clickTime < 1000) {  // Wait up to 1 second
+                            prediction = await webgazer.getCurrentPrediction();
+                            if (prediction && prediction.x !== null && prediction.y !== null) {
+                                break;
+                            }
+                            await new Promise(resolve => setTimeout(resolve, 50));
+                        }
+                        
+                        logPrediction('Calibration click prediction', prediction);
+                        
                         // Store point position and current prediction
                         const pos = calculatePointPosition(event.target);
-                        if (!clickedPoints[id]) {
+                        if (!clickedPoints[id] && prediction && prediction.x !== null && prediction.y !== null) {
                             clickedPoints[id] = {
                                 x: pos.x,
                                 y: pos.y,
-                                predX: xPast50.reduce((a, b) => a + b, 0) / xPast50.length,
-                                predY: yPast50.reduce((a, b) => a + b, 0) / yPast50.length
+                                predX: prediction.x,
+                                predY: prediction.y
                             };
+                            console.log('Stored calibration point:', clickedPoints[id]);
                         }
                         
                         if (CalibrationPoints[id] == 5) {
@@ -364,6 +407,8 @@
                         if (PointCalibrate >= 9) {
                             // Calculate initial accuracy
                             const accuracy = calculateAccuracy();
+                            console.log('Calibration complete, accuracy:', accuracy);
+                            
                             document.getElementById('status').innerHTML = 
                                 `<p>Initial calibration complete!</p>
                                 <p>Accuracy: ${accuracy}%</p>
@@ -372,8 +417,8 @@
                             // Hide calibration points during validation
                             document.querySelector('.calibrationDiv').style.display = 'none';
                             
-                            // Show validation point
-                            showValidationPoint();
+                            // Show validation point after a short delay
+                            setTimeout(showValidationPoint, 1000);
                         }
                     });
                 });
@@ -403,12 +448,11 @@
                 function recordGazeData(timestamp) {
                     if (!isRecording) return;
                     
-                    const prediction = webgazer.getCurrentPrediction();
-                    if (prediction && prediction.x !== null && prediction.y !== null) {
+                    if (lastValidPrediction) {
                         gazeData.push({
                             timestamp: performance.now(),
-                            x: prediction.x,
-                            y: prediction.y,
+                            x: lastValidPrediction.x,
+                            y: lastValidPrediction.y,
                             elapsedTime: performance.now() - recordingStartTime
                         });
                     }

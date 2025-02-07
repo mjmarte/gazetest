@@ -226,24 +226,35 @@
 
                 // Calculate accuracy
                 function calculateAccuracy() {
+                    var windowHeight = window.innerHeight;
+                    var windowWidth = window.innerWidth;
                     var accuracies = [];
+                    
                     for (let pointId in clickedPoints) {
                         const point = clickedPoints[pointId];
-                        const xError = Math.abs((point.x - point.predX) / window.innerWidth);
-                        const yError = Math.abs((point.y - point.predY) / window.innerHeight);
-                        accuracies.push({
-                            x: 100 * (1 - xError),
-                            y: 100 * (1 - yError)
-                        });
+                        
+                        // Calculate distance between prediction and actual point
+                        const xDiff = point.x - point.predX;
+                        const yDiff = point.y - point.predY;
+                        const distance = Math.sqrt((xDiff * xDiff) + (yDiff * yDiff));
+                        
+                        // Calculate precision percentage using window height as reference
+                        const halfWindowHeight = windowHeight / 2;
+                        let precision = 0;
+                        if (distance <= halfWindowHeight && distance > -1) {
+                            precision = 100 - (distance / halfWindowHeight * 100);
+                        } else if (distance > halfWindowHeight) {
+                            precision = 0;
+                        } else if (distance > -1) {
+                            precision = 100;
+                        }
+                        
+                        accuracies.push(precision);
                     }
                     
                     // Calculate average accuracy
-                    const avgAccuracy = accuracies.reduce((acc, val) => ({
-                        x: acc.x + val.x / accuracies.length,
-                        y: acc.y + val.y / accuracies.length
-                    }), { x: 0, y: 0 });
-                    
-                    return avgAccuracy;
+                    const avgAccuracy = accuracies.reduce((sum, val) => sum + val, 0) / accuracies.length;
+                    return Math.round(avgAccuracy);
                 }
                 
                 // Add click handlers to calibration points
@@ -279,7 +290,7 @@
                             const accuracy = calculateAccuracy();
                             document.getElementById('status').innerHTML = 
                                 `<p>Calibration complete!</p>
-                                <p>Accuracy: X: ${accuracy.x.toFixed(2)}%, Y: ${accuracy.y.toFixed(2)}%</p>
+                                <p>Accuracy: ${accuracy}%</p>
                                 <p>You can now start recording.</p>`;
                             
                             // Show recording controls

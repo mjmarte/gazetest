@@ -122,12 +122,20 @@ li {
 /* Face tracking styles */
 .faceFeedbackBox {
     border: 3px solid #00ff00 !important;
-    transition: all 0.1s ease-out;
+    position: fixed !important;
+    width: 160px !important;  
+    height: 160px !important; 
+    top: 60px !important;    
+    left: 80px !important;   
+    margin: 0 !important;
+    z-index: 1001;
 }
 
 #webgazerVideoFeed {
     position: fixed !important;
     top: 0;
     left: 0;
+    width: 320px !important;  
+    height: 240px !important;
     z-index: 1000;
 }

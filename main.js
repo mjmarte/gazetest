@@ -30,40 +30,10 @@ window.onload = async function() {
     webgazer.params.showVideo = true;
     webgazer.params.showFaceOverlay = true;
     webgazer.params.showFaceFeedbackBox = true;
-    webgazer.params.faceFeedbackBoxRatio = 0.8; // Adjust this value to make face box smaller
     
     webgazer.showVideoPreview(true)
         .showPredictionPoints(true)
         .applyKalmanFilter(true); // Enable Kalman filter for additional smoothing
-
-    // Function to adjust face overlay box size
-    function adjustFaceOverlay() {
-        const videoElement = document.getElementById('webgazerVideoFeed');
-        if (videoElement) {
-            // Set video size relative to viewport
-            const maxWidth = Math.min(320, window.innerWidth * 0.3);
-            const aspectRatio = videoConstraints.height.ideal / videoConstraints.width.ideal;
-            const width = maxWidth;
-            const height = width * aspectRatio;
-
-            videoElement.style.width = width + 'px';
-            videoElement.style.height = height + 'px';
-
-            // Adjust face overlay - make it significantly smaller than the video stream
-            const overlay = document.querySelector('.faceFeedbackBox');
-            if (overlay) {
-                const boxSize = Math.min(width, height) * 0.45; // Reduced to 45% of the smaller video dimension
-                overlay.style.width = boxSize + 'px';
-                overlay.style.height = boxSize + 'px';
-                
-                // Center the overlay
-                const topOffset = (height - boxSize) / 2;
-                const leftOffset = (width - boxSize) / 2;
-                overlay.style.top = topOffset + 'px';
-                overlay.style.left = leftOffset + 'px';
-            }
-        }
-    }
 
     // Initial setup
     var setup = function() {
@@ -73,15 +43,12 @@ window.onload = async function() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         canvas.style.position = 'fixed';
-        
-        // Adjust face overlay after setup
-        setTimeout(adjustFaceOverlay, 1000);
     };
     
     setup();
 
     // Adjust face overlay on window resize
-    window.addEventListener('resize', adjustFaceOverlay);
+    window.addEventListener('resize', function(){});
 };
 
 // Set to true if you want to save the data even if you reload the page.

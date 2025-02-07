@@ -36,6 +36,7 @@
                 width: 320px !important;
                 height: 240px !important;
                 transform: scaleX(-1) !important;
+                opacity: 0.7 !important;
             }
 
             #webgazerFaceOverlay {
@@ -44,6 +45,7 @@
                 left: 0px !important;
                 width: 320px !important;
                 height: 240px !important;
+                z-index: 3 !important;
             }
 
             #webgazerFaceFeedbackBox {
@@ -51,6 +53,12 @@
                 left: 0px !important;
                 width: 320px !important;
                 height: 240px !important;
+                border: solid 2px rgba(100, 200, 100, 0.6) !important;
+                z-index: 3 !important;
+            }
+
+            .webgazerFaceFeedbackBoxLoop {
+                border: solid 2px rgba(100, 200, 100, 0.6) !important;
             }
 
             /* Calibration points */
@@ -500,11 +508,12 @@
                     if (!isRecording) return;
                     
                     if (lastValidPrediction) {
+                        const now = new Date();
                         gazeData.push({
-                            timestamp: performance.now(),
+                            sampleNumber: gazeData.length + 1,
                             x: lastValidPrediction.x,
                             y: lastValidPrediction.y,
-                            elapsedTime: performance.now() - recordingStartTime
+                            timestamp: now.toISOString().replace('T', ' ').slice(0, -1)  // Format: YYYY-MM-DD HH:mm:ss.SSS
                         });
                     }
                     
@@ -536,9 +545,9 @@
                         console.log(`Recording finished. Average sampling rate: ${samplingRate.toFixed(2)} Hz`);
                         
                         const csvContent = "data:text/csv;charset=utf-8," + 
-                            "timestamp,x,y,elapsedTime\n" +
+                            "sample,x,y,timestamp\n" +
                             gazeData.map(row => 
-                                `${row.timestamp},${row.x},${row.y},${row.elapsedTime}`
+                                `${row.sampleNumber},${row.x},${row.y},${row.timestamp}`
                             ).join("\n");
                         
                         const encodedUri = encodeURI(csvContent);

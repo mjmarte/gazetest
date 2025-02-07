@@ -509,12 +509,19 @@
                     
                     if (lastValidPrediction) {
                         const now = new Date();
-                        gazeData.push({
+                        const dataPoint = {
                             sampleNumber: gazeData.length + 1,
-                            x: lastValidPrediction.x,
-                            y: lastValidPrediction.y,
-                            timestamp: now.toISOString().replace('T', ' ').slice(0, -1)  // Format: YYYY-MM-DD HH:mm:ss.SSS
-                        });
+                            x: Math.round(lastValidPrediction.x),  // Round for cleaner output
+                            y: Math.round(lastValidPrediction.y),
+                            timestamp: now.toISOString().replace('T', ' ').slice(0, -1)
+                        };
+                        
+                        // Log every 60th sample (about once per second) for verification
+                        if (gazeData.length % 60 === 0) {
+                            console.log('Sample data point:', dataPoint);
+                        }
+                        
+                        gazeData.push(dataPoint);
                     }
                     
                     frameRequestId = requestAnimationFrame(recordGazeData);
@@ -540,9 +547,11 @@
                     
                     // Only save if we have valid data
                     if (gazeData.length > 0) {
-                        const duration = (gazeData[gazeData.length - 1].timestamp - gazeData[0].timestamp) / 1000;
+                        const duration = (new Date(gazeData[gazeData.length - 1].timestamp) - new Date(gazeData[0].timestamp)) / 1000;
                         const samplingRate = gazeData.length / duration;
                         console.log(`Recording finished. Average sampling rate: ${samplingRate.toFixed(2)} Hz`);
+                        console.log('First data point:', gazeData[0]);
+                        console.log('Last data point:', gazeData[gazeData.length - 1]);
                         
                         const csvContent = "data:text/csv;charset=utf-8," + 
                             "sample,x,y,timestamp\n" +

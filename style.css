@@ -137,14 +137,9 @@ li {
 .webgazerFaceFeedbackBoxLoop {
     border: 3.3px solid #00ff00 !important;
     position: fixed !important;
-    width: 144px !important;  /* 60% of 240px */
-    height: 144px !important;
-    top: 48px !important;    /* (240px - 144px) / 2 */
-    left: 88px !important;   /* (320px - 144px) / 2 */
     margin: 0 !important;
     z-index: 1001 !important;
     box-sizing: border-box !important;
-    transform: none !important;
 }
 
 /* Remove any conflicting styles */

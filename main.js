@@ -9,7 +9,7 @@ window.onload = async function() {
 
     //start the webgazer tracker
     await webgazer.setRegression('ridge') /* currently must set regression and tracker */
-        .setTracker('clmtrackr')
+        .setTracker('TFFacemesh')
         .setGazeListener(function(data, clock) {
             // Apply additional smoothing to the gaze data
             if (data) {
@@ -26,11 +26,11 @@ window.onload = async function() {
         .saveDataAcrossSessions(true)
         .begin();
 
-    // Try multiple approaches to set the face overlay size
+    // Configure WebGazer parameters
     webgazer.params.showVideo = true;
     webgazer.params.showFaceOverlay = true;
     webgazer.params.showFaceFeedbackBox = true;
-    webgazer.params.faceFeedbackBoxRatio = 0.4;
+    webgazer.params.faceFeedbackBoxRatio = 0.6; // Adjust this ratio to control box size
     
     // Enable video preview and prediction points
     webgazer.showVideoPreview(true)

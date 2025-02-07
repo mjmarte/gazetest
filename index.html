@@ -191,11 +191,57 @@
                 const VIDEO_WIDTH = 320;
                 const VIDEO_HEIGHT = 240;
                 
+                // Calibration state
+                var PointCalibrate = 0;
+                var CalibrationPoints = {};
+                
                 // Store click coordinates for accuracy test
                 var xPast50 = new Array(50);
                 var yPast50 = new Array(50);
                 var clickedPoints = {};
                 var lastValidPrediction = null;
+
+                // Calculate point position
+                function calculatePointPosition(element) {
+                    const rect = element.getBoundingClientRect();
+                    return {
+                        x: rect.left + rect.width / 2,
+                        y: rect.top + rect.height / 2
+                    };
+                }
+
+                // Calculate accuracy
+                function calculateAccuracy() {
+                    var windowHeight = window.innerHeight;
+                    var windowWidth = window.innerWidth;
+                    var accuracies = [];
+                    
+                    for (let pointId in clickedPoints) {
+                        const point = clickedPoints[pointId];
+                        
+                        // Calculate distance between prediction and actual point
+                        const xDiff = point.x - point.predX;
+                        const yDiff = point.y - point.predY;
+                        const distance = Math.sqrt((xDiff * xDiff) + (yDiff * yDiff));
+                        
+                        // Calculate precision percentage using window height as reference
+                        const halfWindowHeight = windowHeight / 2;
+                        let precision = 0;
+                        if (distance <= halfWindowHeight && distance > -1) {
+                            precision = 100 - (distance / halfWindowHeight * 100);
+                        } else if (distance > halfWindowHeight) {
+                            precision = 0;
+                        } else if (distance > -1) {
+                            precision = 100;
+                        }
+                        
+                        accuracies.push(precision);
+                    }
+                    
+                    // Calculate average accuracy
+                    const avgAccuracy = accuracies.reduce((sum, val) => sum + val, 0) / accuracies.length;
+                    return Math.round(avgAccuracy);
+                }
 
                 // Debug helper
                 function logPrediction(prefix, prediction) {
@@ -281,6 +327,58 @@
                     document.getElementById('gaze-y').textContent = Math.round(data.y);
                 });
 
+                // Add click handlers to calibration points
+                document.querySelectorAll('.Calibration').forEach(function(el) {
+                    el.addEventListener('click', async function(event) {
+                        var id = event.target.id;
+                        
+                        if (!CalibrationPoints[id]) {
+                            CalibrationPoints[id] = 0;
+                        }
+                        CalibrationPoints[id]++;
+                        
+                        // Get current prediction
+                        const prediction = await webgazer.getCurrentPrediction();
+                        logPrediction('Calibration click prediction', prediction);
+                        
+                        // Store point position and current prediction
+                        const pos = calculatePointPosition(event.target);
+                        if (!clickedPoints[id] && prediction && prediction.x !== null && prediction.y !== null) {
+                            clickedPoints[id] = {
+                                x: pos.x,
+                                y: pos.y,
+                                predX: prediction.x,
+                                predY: prediction.y
+                            };
+                            console.log('Stored calibration point:', clickedPoints[id]);
+                        }
+                        
+                        if (CalibrationPoints[id] == 5) {
+                            event.target.style.backgroundColor = 'green';
+                            PointCalibrate++;
+                        } else if (CalibrationPoints[id] < 5) {
+                            event.target.style.backgroundColor = 'yellow';
+                        }
+                        
+                        if (PointCalibrate >= 9) {
+                            // Calculate initial accuracy
+                            const accuracy = calculateAccuracy();
+                            console.log('Calibration complete, accuracy:', accuracy);
+                            
+                            document.getElementById('status').innerHTML = 
+                                `<p>Initial calibration complete!</p>
+                                <p>Accuracy: ${accuracy}%</p>
+                                <p>Please stare at the red dot in the center for 5 seconds for validation...</p>`;
+                            
+                            // Hide calibration points during validation
+                            document.querySelector('.calibrationDiv').style.display = 'none';
+                            
+                            // Show validation point after a short delay
+                            setTimeout(showValidationPoint, 1000);
+                        }
+                    });
+                });
+                
                 // Show calibration validation point
                 function showValidationPoint() {
                     // Clear previous data
@@ -375,67 +473,6 @@
                         }, 3000);
                     }, 2000);  // Wait 2 seconds before starting validation
                 }
-                
-                // Add click handlers to calibration points
-                document.querySelectorAll('.Calibration').forEach(function(el) {
-                    el.addEventListener('click', async function(event) {
-                        var id = event.target.id;
-                        
-                        if (!CalibrationPoints[id]) {
-                            CalibrationPoints[id] = 0;
-                        }
-                        CalibrationPoints[id]++;
-                        
-                        // Wait for next valid prediction after click
-                        let clickTime = performance.now();
-                        let prediction = null;
-                        while (performance.now() - clickTime < 1000) {  // Wait up to 1 second
-                            prediction = await webgazer.getCurrentPrediction();
-                            if (prediction && prediction.x !== null && prediction.y !== null) {
-                                break;
-                            }
-                            await new Promise(resolve => setTimeout(resolve, 50));
-                        }
-                        
-                        logPrediction('Calibration click prediction', prediction);
-                        
-                        // Store point position and current prediction
-                        const pos = calculatePointPosition(event.target);
-                        if (!clickedPoints[id] && prediction && prediction.x !== null && prediction.y !== null) {
-                            clickedPoints[id] = {
-                                x: pos.x,
-                                y: pos.y,
-                                predX: prediction.x,
-                                predY: prediction.y
-                            };
-                            console.log('Stored calibration point:', clickedPoints[id]);
-                        }
-                        
-                        if (CalibrationPoints[id] == 5) {
-                            event.target.style.backgroundColor = 'green';
-                            PointCalibrate++;
-                        } else if (CalibrationPoints[id] < 5) {
-                            event.target.style.backgroundColor = 'yellow';
-                        }
-                        
-                        if (PointCalibrate >= 9) {
-                            // Calculate initial accuracy
-                            const accuracy = calculateAccuracy();
-                            console.log('Calibration complete, accuracy:', accuracy);
-                            
-                            document.getElementById('status').innerHTML = 
-                                `<p>Initial calibration complete!</p>
-                                <p>Accuracy: ${accuracy}%</p>
-                                <p>Please stare at the red dot in the center for 5 seconds for validation...</p>`;
-                            
-                            // Hide calibration points during validation
-                            document.querySelector('.calibrationDiv').style.display = 'none';
-                            
-                            // Show validation point after a short delay
-                            setTimeout(showValidationPoint, 1000);
-                        }
-                    });
-                });
                 
                 // Recording functionality
                 let isRecording = false;

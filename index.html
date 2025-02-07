@@ -168,6 +168,28 @@
                 var topDist = '0px';
                 var leftDist = '0px';
                 
+                // Store click coordinates for accuracy test
+                var xPast50 = new Array(50);
+                var yPast50 = new Array(50);
+                var clickedPoints = {};
+                
+                // Wait for WebGazer to fully initialize
+                function wait(ms) {
+                    return new Promise(resolve => setTimeout(resolve, ms));
+                }
+
+                // Initialize webgazer
+                await webgazer.setRegression('ridge')
+                    .setTracker('TFFacemesh')
+                    .begin();
+                
+                // Wait for WebGazer to stabilize
+                await wait(2500);
+                
+                webgazer.showVideoPreview(true)
+                    .showPredictionPoints(true)
+                    .applyKalmanFilter(true);
+
                 // Set up video feed positioning
                 var setup = function() {
                     var video = document.getElementById('webgazerVideoFeed');
@@ -180,36 +202,24 @@
                     video.style.transform = 'scaleX(-1)';
                 };
 
-                // Store click coordinates for accuracy test
-                var xPast50 = new Array(50);
-                var yPast50 = new Array(50);
-                var clickedPoints = {};
-
-                // Initialize webgazer
-                await webgazer.setRegression('ridge')
-                    .setTracker('TFFacemesh')
-                    .setGazeListener(function(data, timestamp) {
-                        if (data == null) return;
-                        
-                        // Store last 50 predictions for accuracy calculation
-                        xPast50.push(data.x);
-                        yPast50.push(data.y);
-                        if (xPast50.length > 50) {
-                            xPast50.shift();
-                            yPast50.shift();
-                        }
-                        
-                        // Update gaze point display
-                        document.getElementById('gaze-x').textContent = Math.round(data.x);
-                        document.getElementById('gaze-y').textContent = Math.round(data.y);
-                    })
-                    .begin();
-                
-                webgazer.showVideoPreview(true)
-                    .showPredictionPoints(true)
-                    .applyKalmanFilter(true);
-
                 setup();
+
+                // Add gaze data collector
+                webgazer.setGazeListener(function(data, timestamp) {
+                    if (data == null || data.x == null || data.y == null) return;
+                    
+                    // Store last 50 predictions for accuracy calculation
+                    xPast50.push(data.x);
+                    yPast50.push(data.y);
+                    if (xPast50.length > 50) {
+                        xPast50.shift();
+                        yPast50.shift();
+                    }
+                    
+                    // Update gaze point display
+                    document.getElementById('gaze-x').textContent = Math.round(data.x);
+                    document.getElementById('gaze-y').textContent = Math.round(data.y);
+                });
 
                 // Calibration functionality
                 var PointCalibrate = 0;
@@ -256,6 +266,72 @@
                     const avgAccuracy = accuracies.reduce((sum, val) => sum + val, 0) / accuracies.length;
                     return Math.round(avgAccuracy);
                 }
+
+                // Show calibration validation point
+                function showValidationPoint() {
+                    const validationPoint = document.createElement('div');
+                    validationPoint.style.position = 'fixed';
+                    validationPoint.style.left = '50%';
+                    validationPoint.style.top = '50%';
+                    validationPoint.style.transform = 'translate(-50%, -50%)';
+                    validationPoint.style.width = '20px';
+                    validationPoint.style.height = '20px';
+                    validationPoint.style.backgroundColor = 'red';
+                    validationPoint.style.borderRadius = '50%';
+                    validationPoint.style.zIndex = '999999';
+                    validationPoint.id = 'validationPoint';
+                    document.body.appendChild(validationPoint);
+
+                    // Store predictions for 5 seconds
+                    const predictions = [];
+                    const startTime = performance.now();
+                    const collectData = setInterval(() => {
+                        const prediction = webgazer.getCurrentPrediction();
+                        if (prediction && prediction.x !== null && prediction.y !== null) {
+                            predictions.push({
+                                x: prediction.x,
+                                y: prediction.y
+                            });
+                        }
+                    }, 50);  // Collect at 20Hz
+
+                    // After 5 seconds, calculate validation accuracy
+                    setTimeout(() => {
+                        clearInterval(collectData);
+                        document.body.removeChild(validationPoint);
+                        
+                        if (predictions.length === 0) {
+                            alert('No gaze data collected during validation. Please try calibrating again.');
+                            return;
+                        }
+
+                        // Calculate average prediction
+                        const avgPred = predictions.reduce((acc, curr) => ({
+                            x: acc.x + curr.x / predictions.length,
+                            y: acc.y + curr.y / predictions.length
+                        }), { x: 0, y: 0 });
+
+                        // Calculate distance to center
+                        const centerX = window.innerWidth / 2;
+                        const centerY = window.innerHeight / 2;
+                        const xDiff = centerX - avgPred.x;
+                        const yDiff = centerY - avgPred.y;
+                        const distance = Math.sqrt((xDiff * xDiff) + (yDiff * yDiff));
+                        
+                        // Calculate validation accuracy
+                        const halfWindowHeight = window.innerHeight / 2;
+                        let validationAccuracy = 0;
+                        if (distance <= halfWindowHeight && distance > -1) {
+                            validationAccuracy = 100 - (distance / halfWindowHeight * 100);
+                        }
+                        
+                        document.getElementById('status').innerHTML += 
+                            `<p>Validation Accuracy: ${Math.round(validationAccuracy)}%</p>`;
+                        
+                        // Show recording controls
+                        document.getElementById('recording-controls').style.display = 'block';
+                    }, 5000);
+                }
                 
                 // Add click handlers to calibration points
                 document.querySelectorAll('.Calibration').forEach(function(el) {
@@ -286,15 +362,18 @@
                         }
                         
                         if (PointCalibrate >= 9) {
-                            // Calculate and display accuracy
+                            // Calculate initial accuracy
                             const accuracy = calculateAccuracy();
                             document.getElementById('status').innerHTML = 
-                                `<p>Calibration complete!</p>
+                                `<p>Initial calibration complete!</p>
                                 <p>Accuracy: ${accuracy}%</p>
-                                <p>You can now start recording.</p>`;
+                                <p>Please stare at the red dot in the center for 5 seconds for validation...</p>`;
                             
-                            // Show recording controls
-                            document.getElementById('recording-controls').style.display = 'block';
+                            // Hide calibration points during validation
+                            document.querySelector('.calibrationDiv').style.display = 'none';
+                            
+                            // Show validation point
+                            showValidationPoint();
                         }
                     });
                 });
